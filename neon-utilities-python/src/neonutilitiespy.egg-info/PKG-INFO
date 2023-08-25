@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: neonutilitiespy
+Version: 0.0.1
+Summary: A package for accessing and wrangling data generated and published by the National Ecological Observatory Network.
+Author: Bridget Hass, Zach Nicherson
+Author-email: Claire Lunch <clunch@battelleecology.org>
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+NEON-utilities/neon-utilities-python
+================
+
+<!-- ****** Description ****** -->
+Description
+-----
+
+A Python version of the neonUtilities R package is currently in development here. DO NOT attempt to install and use the Python package; core functionality is still in development. This readme will be updated when the package is ready for public use.

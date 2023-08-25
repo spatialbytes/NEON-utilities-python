@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+src/neonutilitiespy/__init__.py
+src/neonutilitiespy/get_citation.py
+src/neonutilitiespy.egg-info/PKG-INFO
+src/neonutilitiespy.egg-info/SOURCES.txt
+src/neonutilitiespy.egg-info/dependency_links.txt
+src/neonutilitiespy.egg-info/requires.txt
+src/neonutilitiespy.egg-info/top_level.txt
