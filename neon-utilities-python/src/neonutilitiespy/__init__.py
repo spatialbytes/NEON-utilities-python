@@ -1,1 +1,1 @@
-from datetime import datetimeimport requests
+from .citation import get_citation

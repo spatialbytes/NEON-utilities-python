@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from datetime import datetime
+import requests
+
+
 def get_citation(dpID, release):
     """
     Use the DOI Foundation API to get BibTex-formatted citations for NEON data, 
@@ -26,19 +30,20 @@ def get_citation(dpID, release):
 
     @author: Claire Lunch
     """
-    
-    if release == "PROVISIONAL"
+
+    if release == "PROVISIONAL":
         citI = "@misc{DPID/provisional,\n  doi = {},\n  url = {https://data.neonscience.org/data-products/DPID},\n  author = {{National Ecological Observatory Network (NEON)}},\n  language = {en},\n  title = {NAME (DPID)},\n  publisher = {National Ecological Observatory Network (NEON)},\n  year = {YEAR}\n}"
         citDP = citI.replace("DPID", dpID)
         citY = citDP.replace("YEAR", str(datetime.now().year))
-        
-        nm_req = requests.get("https://data.neonscience.org/api/v0/products/"+
+
+        nm_req = requests.get("https://data.neonscience.org/api/v0/products/" +
                               dpID)
         nm_str = nm_req.json()
         nm = nm_str["data"]["productName"]
-        
+
         cit = citY.replace("NAME", nm)
-        
+        return cit
+
     else:
-        
+
         print("DOI retrieval code coming soon")
