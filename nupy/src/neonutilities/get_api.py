@@ -62,13 +62,14 @@ def get_api(api_url,
             elif 'x-ratelimit-limit' in dict(response.headers).keys():
 
                 # Retry GET if rate limit exceeded
-                limit_remaim_sec = dict(response.headers).get(
-                    'x-ratelimit-remaining')
-                if limit_remaim_sec < 1:
+                limit_remain = dict(response.headers).get(
+                    'X-RateLimit-Remaining')
+                time_reset = dict(response.headers).get('X-RateLimit-Reset')
+                if limit_remain < 1:
 
                     print(
-                        f"Rate limit reached. Pausing for {limit_remaim_sec} seconds to reset.\n")
-                    time.sleep(limit_remaim_sec)
+                        f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
+                    time.sleep(time_reset)
                     j += 1
 
                 else:
