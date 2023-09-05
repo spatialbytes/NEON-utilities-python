@@ -37,12 +37,13 @@ def get_api(api_url,
         print("No internet connection detected. Cannot access NEON API.\n")
         return None
 
-    # make 5 attempts to access - if rate limit is reached every time, give up
+    # Make 5 request attempts. If the rate limit is reached, pause for the
+    # burst reset time to try again.
     j = 1
 
     while (j <= 5):
 
-        # Make request
+        # Try making the request
         try:
             # Construct URL either with or without token
             if token is None:
@@ -52,38 +53,41 @@ def get_api(api_url,
                     api_url, headers={"X-API-TOKEN": token, "accept": "application/json"})
 
             # Check for successful response
-            if response.status_code != 200:
+            if response.status_code == 200:
 
-                # Return nothing if GET failed
+                if 'x-ratelimit-limit' in dict(response.headers).keys():
+                    # Retry get request if rate limit exceeded
+                    limit_remain = dict(response.headers)[
+                        'x-ratelimit-remaining']
+                    # print(f"x-ratelimit-remaining: {limit_remain}")
+                    if int(limit_remain) < 1:
+                        # Wait for the reset time
+                        time_reset = dict(response.headers)[
+                            'x-ratelimit-reset']
+                        print(
+                            f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
+                        time.sleep(int(time_reset))
+                        # Increment loop to retry request attempt
+                        j += 1
+
+                    else:
+                        # If rate limit is not reached, exit out of loop
+                        j += 5
+
+                else:
+                    # If x-ratelimit-limit not found in headers, exit out of
+                    # loop (don't need to retry because of rate-limit)
+                    j += 5
+            else:
+                # Return nothing if request failed (status code is not 200)
                 print(
                     f"Request failed with status code {response.status_code}\n")
                 return None
 
-            elif 'x-ratelimit-limit' in dict(response.headers).keys():
-
-                # Retry GET if rate limit exceeded
-                limit_remain = dict(response.headers).get(
-                    'X-RateLimit-Remaining')
-                time_reset = dict(response.headers).get('X-RateLimit-Reset')
-                if limit_remain < 1:
-
-                    print(
-                        f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
-                    time.sleep(time_reset)
-                    j += 1
-
-                else:
-
-                    j += 5
-
-            else:
-
-                j += 5
-
             return response
 
-        except:
-
+        except Exception as e:
+            print(e)
             print("No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
             return None
 
