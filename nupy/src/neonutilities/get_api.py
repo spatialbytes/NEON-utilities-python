@@ -30,10 +30,19 @@ def get_api(api_url,
 
     @author: Zachary Nickerson
     """
+    def get_status_code_meaning(status_code):
+        return requests.status_codes._codes[status_code][0]
 
     # Check internet connection
-    check_connection = requests.get("https://data.neonscience.org/")
-    if check_connection.status_code != 200:
+    try:
+        check_connection = requests.get("https://data.neonscience.org/")
+        if check_connection.status_code != 200:
+            status_code = check_connection.status_code
+            status_code_meaning = get_status_code_meaning(status_code)
+            print(
+                f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
+            return None
+    except:  # ConnectionError as e
         print("No internet connection detected. Cannot access NEON API.\n")
         return None
 
@@ -55,15 +64,14 @@ def get_api(api_url,
             # Check for successful response
             if response.status_code == 200:
 
-                if 'x-ratelimit-limit' in dict(response.headers).keys():
-                    # Retry get request if rate limit exceeded
-                    limit_remain = dict(response.headers)[
-                        'x-ratelimit-remaining']
-                    # print(f"x-ratelimit-remaining: {limit_remain}")
+                if 'x-ratelimit-limit' in response.headers:
+                    # Retry get request if rate limit is reached
+                    limit_remain = response.headers.get(
+                        'x-ratelimit-remaining')
+                    print(f"x-ratelimit-remaining: {limit_remain}")
                     if int(limit_remain) < 1:
                         # Wait for the reset time
-                        time_reset = dict(response.headers)[
-                            'x-ratelimit-reset']
+                        time_reset = response.headers.get('x-ratelimit-reset')
                         print(
                             f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
                         time.sleep(int(time_reset))
@@ -78,17 +86,21 @@ def get_api(api_url,
                     # If x-ratelimit-limit not found in headers, exit out of
                     # loop (don't need to retry because of rate-limit)
                     j += 5
+
             else:
                 # Return nothing if request failed (status code is not 200)
+                # Print the status code and it's meaning
+                status_code_meaning = get_status_code_meaning(
+                    response.status_code)
                 print(
-                    f"Request failed with status code {response.status_code}\n")
+                    f"Request failed with status code {response.status_code}, indicating '{status_code_meaning}'\n")
                 return None
 
             return response
 
-        except Exception as e:
-            print(e)
-            print("No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
+        except:
+            print(
+                "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
             return None
 
 # api_url = 'https://data.neonscience.org/api/v0/samples/classes?sampleTag=MCRA.SS.20230425.POM.1'
