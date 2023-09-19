@@ -6,6 +6,7 @@ Created on Wed Sep 13 13:10:18 2023
 @author: bhass
 """
 
+from pathlib import Path, PurePath
 import re
 from get_api import get_api
 import pandas as pd
@@ -33,7 +34,7 @@ import pandas as pd
 
 ##############################################################################################
 
-# get and stash the file names, google cloud URLs, file size, and download status (default = 0) in a data frame
+# get and stash the file names, google cloud storage URLs, file size, and download status (default = 0) in a data frame
 
 # def list_urls_by_product(self, dpid):
 #     """
@@ -48,6 +49,18 @@ import pandas as pd
 #         data_urls.extend(data_urls_temp)
 
 #     return data_urls
+
+# def make_new_dir(folder):
+#     if not os.path.exists(folder):
+#         os.makedirs(folder)
+
+# %%
+
+
+def check_token(request):
+    #   # check that token was used
+    if 'x-ratelimit-limit' in request.headers and request.headers['x-ratelimit-limit'] == '200':
+        print('API token was not recognized. Public rate limit applied.\n')
 
 
 def convert_byte_size(size_bytes):
@@ -71,6 +84,32 @@ def convert_byte_size(size_bytes):
         # print('Download size:', round(size/(10**12), 2), 'TB')
     return size_read
 
+# %%
+
+
+def download_file(url, token=None, save_path=None):
+    # print('url:', url)
+    file_name = url.split('/')[-1]
+    # print('filename:', file_name)
+    file_path = url.split('neon-aop-products/')[1]
+    # print('filepath:', file_path)
+    if save_path:
+        print('save_path found')
+        file_fullpath = save_path / file_path
+    else:
+        file_fullpath = Path.cwd() / file_path
+
+    file_fullpath.parent.mkdir(parents=True, exist_ok=True)
+    print(f'downloading file to {file_fullpath}')
+    req = get_api(url, token)
+    with open(file_fullpath, 'wb') as f:
+        for chunk in req.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+    return
+
+# %%
+
 
 def get_file_urls(urls, token=None):
     # url_messages = []
@@ -91,7 +130,7 @@ def get_file_urls(urls, token=None):
         file_url_df.drop(columns=['md5', 'crc32'], inplace=True)
 
     return file_url_df, release
-
+# %%
 # getFileUrls < - function(m.urls, token=NA){
 #     url.messages < - character()
 #     file.urls < - c(NA, NA, NA)
@@ -234,7 +273,7 @@ def by_file_aop(dpid,
   # releases <- character()
 
     # query the products endpoint for the product requested
-    request = get_api(
+    response = get_api(
         "http://data.neonscience.org/api/v0/products/" + dpid, token)
 
   # # query the products endpoint for the product requested
@@ -252,25 +291,17 @@ def by_file_aop(dpid,
 #   }
 
 #   # check that token was used
-    if token and 'x-ratelimit-limit' in request.headers:
-        if request.headers['x-ratelimit-limit'] == '200':
+    if token and 'x-ratelimit-limit' in response.headers:
+        if response.headers['x-ratelimit-limit'] == '200':
             print('API token was not recognized. Public rate limit applied.\n')
 
-#   if(!is.na(token) & !is.null(req$headers$`x-ratelimit-limit`)) {
-#     if(req$headers$`x-ratelimit-limit`==200) {
-#       cat('API token was not recognized. Public rate limit applied.\n')
-#     }
-#   }
-
-    request_dict = request.json()
+    # get the request respose dictionary
+    response_dict = response.json()
     # error message if dpid is not an AOP data product
-    if request_dict['data']['productScienceTeamAbbr'] != 'AOP':
+    if response_dict['data']['productScienceTeamAbbr'] != 'AOP':
         print(
             f'{dpid} is not a remote sensing product. Use zipsByProduct()')
         return
-#   if(avail$data$productScienceTeamAbbr!="AOP") {
-#     stop(paste(dpID, "is not a remote sensing product. Use zipsByProduct()"))
-#   }
 
     # check for sites that are flown under the flight box of a different site
     # this next section pulls from the shared_flights.csv file (could also use
@@ -294,34 +325,14 @@ def by_file_aop(dpid,
             print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
         site = flightSite
 
-#   if(site %in% shared_flights$site) {
-#     flightSite <- shared_flights$flightSite[which(shared_flights$site==site)]
-#     if(site %in% c('TREE','CHEQ','KONA','DCFS')) {
-#       cat(paste(site, ' is part of the flight box for ', flightSite,
-#                 '. Downloading data from ', flightSite, '.\n', sep=''))
-#     } else {
-#       cat(paste(site, ' is an aquatic site and is sometimes included in the flight box for ', flightSite,
-#                 '. Aquatic sites are not always included in flight coverage every year.\nDownloading data from ',
-#                 flightSite, '. Check data to confirm coverage of ', site, '.\n', sep=''))
-#     }
-#     site <- flightSite
-#   }
-
     # get the urls for months with data available, and subset to site
     site_info = next(
-        item for item in request_dict['data']['siteCodes'] if item["siteCode"] == site)
+        item for item in response_dict['data']['siteCodes'] if item["siteCode"] == site)
     site_urls = site_info['availableDataUrls']
-    # print(site_urls)
-#   month.urls <- unlist(avail$data$siteCodes$availableDataUrls)
-#   month.urls <- month.urls[grep(paste(site, year, sep="/"), month.urls)]
 
     # error message if nothing is available
     if len(site_urls) == 0:
         print("There are no data available at the selected site and year.")
-
-#   if(length(month.urls)==0) {
-#     stop("There are no data at the selected site and year.")
-#   }
 
     # get file url dataframe for the available month urls
     file_url_df, release = get_file_urls(site_urls, token=token)
@@ -335,33 +346,32 @@ def by_file_aop(dpid,
     # get the total size of all the files found
     download_size_bytes = file_url_df['size'].sum()
     download_size = convert_byte_size(download_size_bytes)
-    #   downld.size <- sum(as.numeric(as.character(file.urls.current[[1]]$size)), na.rm=T)
-    #   downld.size.read <- convByteSize(downld.size)
-#   file.urls.current <- getFileUrls(month.urls, token = token)
-#   if(is.null(file.urls.current)) {
-#     message("No data files found.")
-#     return(invisible())
-#   }
-#   downld.size <- sum(as.numeric(as.character(file.urls.current[[1]]$size)), na.rm=T)
-#   downld.size.read <- convByteSize(downld.size)
 
     # ask user if they want to proceed
     if check_size:
         print('Download size:', download_size)
-        # if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)") != "y":
-        #     print('Exiting by_file_aop')
-        #     return
-#   # can disable this with check.size=F
-#   if(check.size==TRUE) {
-#     resp <- readline(paste("Continuing will download ", nrow(file.urls.current[[1]]), " files totaling approximately ",
-#                            downld.size.read, ". Do you want to proceed y/n: ", sep=""))
-#     if(!(resp %in% c("y","Y"))) {
-#       stop("Download halted.")
-#     }
-#   } else {
-#     cat(paste("Downloading files totaling approximately", downld.size.read, "\n", sep=" "))
-#     }
+        if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)") != "y":
+            print("Download halted")
+            return
+        else:
+            print(f"Downloading files totaling approximately {download_size}")
 
+    # create folder in working directory to put files in
+    if save_path:
+        download_path = Path(save_path)
+    else:
+        download_path = Path.cwd()
+    download_path.mkdir(parents=True, exist_ok=True)
+
+    # serially download all files
+    files = list(file_url_df['url'])
+    for file in files:
+        try:
+            download_file(file, download_path)
+        except Exception as e:
+            print(e)
+
+    return
 
 # request with suspended data (no data available)
 # eg. https://data.neonscience.org/api/v0/products/DP3.30016.001
@@ -369,5 +379,3 @@ def by_file_aop(dpid,
 # productStatus: FUTURE
 # releases: []
 # siteCodes: NoneType object
-
-    return
