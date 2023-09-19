@@ -6,33 +6,11 @@ Created on Wed Sep 13 13:10:18 2023
 @author: bhass
 """
 
-from pathlib import Path, PurePath
+from pathlib import Path
 import re
+# from tdqm import tdqm
 from get_api import get_api
 import pandas as pd
-
-##############################################################################################
-# ' @title Get and store the file names, S3 URLs, file size, and download status (default = 0) in a data frame
-
-# ' @author
-# ' Claire Lunch \email{clunch@battelleecology.org}
-# ' Christine Laney \email{claney@battelleecology.org}
-
-# ' @description Used to generate a data frame of available AOP files.
-# '
-# ' @param m.urls The monthly API URL for the AOP files
-# ' @param token User specific API token (generated within neon.datascience user accounts)
-
-# ' @return A dataframe comprised of file names, S3 URLs, file size, and download status (default = 0)
-
-# ' @references
-# ' License: GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007
-
-# Changelog and author contributions / copyrights
-#   Claire Lunch (2018-02-19): original creation
-#   Christine Laney (2018-03-05): Added functionality to get new list of URLs if the old ones expire, during the download stream.
-
-##############################################################################################
 
 # get and stash the file names, google cloud storage URLs, file size, and download status (default = 0) in a data frame
 
@@ -87,20 +65,13 @@ def convert_byte_size(size_bytes):
 # %%
 
 
-def download_file(url, token=None, save_path=None):
+def download_file(url, save_path, token=None):
     # print('url:', url)
     file_name = url.split('/')[-1]
-    # print('filename:', file_name)
     file_path = url.split('neon-aop-products/')[1]
-    # print('filepath:', file_path)
-    if save_path:
-        print('save_path found')
-        file_fullpath = save_path / file_path
-    else:
-        file_fullpath = Path.cwd() / file_path
-
+    file_fullpath = save_path / file_path
     file_fullpath.parent.mkdir(parents=True, exist_ok=True)
-    print(f'downloading file to {file_fullpath}')
+    # print(f'downloading file to {file_fullpath}')
     req = get_api(url, token)
     with open(file_fullpath, 'wb') as f:
         for chunk in req.iter_content(chunk_size=1024):
@@ -130,52 +101,8 @@ def get_file_urls(urls, token=None):
         file_url_df.drop(columns=['md5', 'crc32'], inplace=True)
 
     return file_url_df, release
+
 # %%
-# getFileUrls < - function(m.urls, token=NA){
-#     url.messages < - character()
-#     file.urls < - c(NA, NA, NA)
-#     releases < - character()
-#     for(i in 1: length(m.urls)) {
-
-#         tmp < - getAPI(apiURL=m.urls[i], token=token)
-
-#         if(tmp$status_code != 200) {
-#             message(paste("Data file retrieval failed with code ", tmp$status_code,
-#                           ". Check NEON data portal for outage alerts.", sep=""))
-#             return(invisible())
-#         }
-
-#         tmp.files < - jsonlite: : fromJSON(httr: : content(tmp, as='text', encoding='UTF-8'),
-#                                           simplifyDataFrame=TRUE, flatten=TRUE)
-
-#         # check for no files
-#         if(length(tmp.files$data$files) == 0) {
-#             url.messages < - c(url.messages, paste("No files found for site", tmp.files$data$siteCode,
-#                                                    "and year", tmp.files$data$month, sep=" "))
-#             next
-#         }
-
-#         # get release info
-#         releases < - c(releases, tmp.files$data$release)
-
-#         file.urls < - rbind(file.urls, cbind(tmp.files$data$files$name,
-#                                              tmp.files$data$files$url,
-#                                              tmp.files$data$files$size))
-
-#     }
-
-#     # get size info
-#     file.urls < - data.frame(file.urls, row.names=NULL)
-#     colnames(file.urls) < - c("name", "URL", "size")
-#     file.urls$URL < - as.character(file.urls$URL)
-#     file.urls$name < - as.character(file.urls$name)
-
-#     if(length(url.messages) > 0){writeLines(url.messages)}
-#     file.urls < - file.urls[-1, ]
-#     release < - unique(releases)
-#     return(list(file.urls, release))
-
-# }
 
 
 def by_file_aop(dpid,
@@ -349,22 +276,27 @@ def by_file_aop(dpid,
 
     # ask user if they want to proceed
     if check_size:
-        print('Download size:', download_size)
-        if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)") != "y":
+        if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
             print("Download halted")
             return
+        # print(
+        #     f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)")
         else:
-            print(f"Downloading files totaling approximately {download_size}")
+            print(
+                f"Downloading {num_files} files totaling approximately {download_size}")
 
     # create folder in working directory to put files in
     if save_path:
-        download_path = Path(save_path)
+        download_path = Path.cwd() / Path(save_path)
     else:
         download_path = Path.cwd()
+    # print('download path', download_path)
     download_path.mkdir(parents=True, exist_ok=True)
 
-    # serially download all files
+    # serially download all files, with tdqm progress bar
     files = list(file_url_df['url'])
+
+    # for file in tdqm(files): # if tdqm imports properly, this should work
     for file in files:
         try:
             download_file(file, download_path)
