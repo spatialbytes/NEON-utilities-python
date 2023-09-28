@@ -9,9 +9,11 @@ Created on Wed Sep 13 13:10:18 2023
 from pathlib import Path
 import re
 # from tdqm import tdqm
-from get_api import get_api
+from progress.bar import Bar
+# from get_api import get_api
+from neonutilities import get_api
 import pandas as pd
-
+from time import sleep
 # get and stash the file names, google cloud storage URLs, file size, and download status (default = 0) in a data frame
 
 # def list_urls_by_product(self, dpid):
@@ -68,7 +70,13 @@ def convert_byte_size(size_bytes):
 def download_file(url, save_path, token=None):
     # print('url:', url)
     file_name = url.split('/')[-1]
-    file_path = url.split('neon-aop-products/')[1]
+    # print(f'downloading {file_name}')
+    if 'neon-publication' in url:
+        file_path = url.split('/')[-1]
+        # print(url)
+        # print(file_path)
+    else:  # elif 'neon-aop-products' in url:
+        file_path = url.split('neon-aop-products/')[1]
     file_fullpath = save_path / file_path
     file_fullpath.parent.mkdir(parents=True, exist_ok=True)
     # print(f'downloading file to {file_fullpath}')
@@ -238,19 +246,19 @@ def by_file_aop(dpid,
     # placed inside of the Python module directory itself"
     # https://python-packaging.readthedocs.io/en/latest/non-code-files.html
 
-    shared_flights_df = pd.read_csv('./shared_flights.csv')
-    # .to_dict(orient='tight',index=False)
+    # shared_flights_df = pd.read_csv('./shared_flights.csv')
+    # # .to_dict(orient='tight',index=False)
 
-    shared_flights_dict = shared_flights_df.set_index(
-        ['site'])['flightSite'].to_dict()
-    if site in shared_flights_dict:
-        flightSite = shared_flights_dict[site]
-        if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
-            print(
-                f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
-        else:
-            print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
-        site = flightSite
+    # shared_flights_dict = shared_flights_df.set_index(
+    #     ['site'])['flightSite'].to_dict()
+    # if site in shared_flights_dict:
+    #     flightSite = shared_flights_dict[site]
+    #     if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
+    #         print(
+    #             f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
+    #     else:
+    #         print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
+    #     site = flightSite
 
     # get the urls for months with data available, and subset to site
     site_info = next(
@@ -281,9 +289,6 @@ def by_file_aop(dpid,
             return
         # print(
         #     f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)")
-        else:
-            print(
-                f"Downloading {num_files} files totaling approximately {download_size}")
 
     # create folder in working directory to put files in
     if save_path:
@@ -295,13 +300,18 @@ def by_file_aop(dpid,
 
     # serially download all files, with tdqm progress bar
     files = list(file_url_df['url'])
-
+    print(
+        f"Downloading {num_files} files totaling approximately {download_size}\n")
+    sleep(1)
     # for file in tdqm(files): # if tdqm imports properly, this should work
-    for file in files:
-        try:
+    with Bar('Download Progress...', max=len(files)) as bar:
+        for file in files:
+            # try:
             download_file(file, download_path)
-        except Exception as e:
-            print(e)
+            bar.next()
+        # except Exception as e:
+        #     print(e)
+        bar.finish()
 
     return
 
