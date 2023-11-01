@@ -4,70 +4,96 @@
 Created on Wed Sep 13 13:10:18 2023
 
 @author: bhass
+
+Created on Wed Sep 13 2023
+@author: Bridget Hass (bhass@battelleecology.org)
+
+Adapted from R neonUtilities byFileAOP written by
+@author: Claire Lunch (clunch@battelleecology.org)
+@author: Christine Laney (claney@battelleecology.org)
+# https://github.com/NEONScience/NEON-utilities/blob/main/neonUtilities/R/byFileAOP.R
+
 """
 
 from pathlib import Path
 import re
 # from tdqm import tdqm
 from progress.bar import Bar
-# from get_api import get_api
-from neonutilities import get_api
+from get_api import get_api
+#from neonutilities import get_api
 import pandas as pd
 from time import sleep
-# get and stash the file names, google cloud storage URLs, file size, and download status (default = 0) in a data frame
-
-# def list_urls_by_product(self, dpid):
-#     """
-#     list_urls_by_product lists all the available api url for a given data product id (dpid)
-#     """
-#     product_url = self.construct_product_url(dpid)
-#     # print(product_url)
-#     r = self.make_request(product_url)
-#     data_urls = []
-#     for i in range(len(r['data']['siteCodes'])):
-#         data_urls_temp = r['data']['siteCodes'][i]['availableDataUrls']
-#         data_urls.extend(data_urls_temp)
-
-#     return data_urls
-
-# def make_new_dir(folder):
-#     if not os.path.exists(folder):
-#         os.makedirs(folder)
-
-# %%
 
 
-def check_token(request):
-    #   # check that token was used
-    if 'x-ratelimit-limit' in request.headers and request.headers['x-ratelimit-limit'] == '200':
+# check that token was used
+def check_token(response):
+    """
+    Query the API for AOP data by site, year, and product, and download all 
+    files found, preserving original folder structure. Downloads serially to 
+    avoid API rate-limit overload; may take a long time.
+
+    Parameters
+    --------
+    response: 
+
+    Return
+    --------
+    Warning statement explaining that the API token was not recognized.
+
+    """
+
+    if 'x-ratelimit-limit' in response.headers and response.headers['x-ratelimit-limit'] == '200':
         print('API token was not recognized. Public rate limit applied.\n')
 
 
 def convert_byte_size(size_bytes):
+    """
+    Convert the file size in bytes to a more readable format for display. 
 
-    # if size_bytes < 10**3:
-    #     size_printout = ('Download size:', round(size_bytes, 1), 'bytes')
+    Parameters
+    --------
+    size_bytes: the full file size in bytes
+
+    Return
+    --------
+    String of converted file size in KB, MB, GB, or TB.
+    """
+
     if 10**3 < size_bytes < 10**6:
         size_kb = round(size_bytes/(10**3), 2)
         size_read = f'{size_kb} KB'
     elif 10**6 < size_bytes < 10**9:
         size_mb = round(size_bytes/(10**6), 1)
         size_read = f'{size_mb} MB'
-        # print('Download size:', round(size/(10**6), 2), 'MB')
+        # print('Download size:', size_read)
     elif 10**9 < size_bytes < 10**12:
         size_gb = round(size_bytes/(10**9), 1)
         size_read = f'{size_gb} GB'
-        # print('Download size:', round(size/(10**9), 2), 'GB')
+        # print('Download size:', size_read)
     else:
         size_tb = round(size_bytes/(10**12), 1)
         size_read = f'{size_tb} TB'
-        # print('Download size:', round(size/(10**12), 2), 'TB')
+        # print('Download size:', size_read)
     return size_read
 
 # %%
 
 
 def download_file(url, save_path, token=None):
+    """
+    Function to download a single file from a file's google cloud storage url.
+
+    Parameters
+    --------
+    url: google cloud storage url where the file is stored
+    save_path: the file location (path) where a file will be downloaded
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+
+    Return
+    --------
+    Downloads the file to the path save_path.
+
+    """
     # print('url:', url)
     file_name = url.split('/')[-1]
     # print(f'downloading {file_name}')
@@ -91,8 +117,20 @@ def download_file(url, save_path, token=None):
 
 
 def get_file_urls(urls, token=None):
-    # url_messages = []
-    # releases = []
+    """
+    Get all the files from a list of urls
+
+    Parameters
+    --------
+    urls: 
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+
+    Return
+    --------
+    file_url_df:
+    release:
+
+    """
 
     for url in urls:
         req = get_api(api_url=url, token=token)
@@ -120,7 +158,6 @@ def by_file_aop(dpid,
                 save_path=None,
                 token=None):
     """
-
     Query the API for AOP data by site, year, and product, and download all 
     files found, preserving original folder structure. Downloads serially to 
     avoid API rate-limit overload; may take a long time.
@@ -141,17 +178,7 @@ def by_file_aop(dpid,
     Example
     --------
     Download 2017 vegetation index data from San Joaquin Experimental Range:
-
-    >>> by_file_aop(dpID="DP3.30026.001", site="SJER", year="2017")
-
-    Created on Wed Sep 13 2023
-    @author: Bridget Hass (bhass@battelleecology.org)
-
-    Adapted from R neonUtilities byFileAOP written by
-    @author: Claire Lunch (clunch@battelleecology.org)
-    @author: Christine Laney (claney@battelleecology.org)
-    # https://github.com/NEONScience/NEON-utilities/blob/main/neonUtilities/R/byFileAOP.R
-
+    by_file_aop(dpID="DP3.30026.001", site="SJER", year="2017")
     """
 
     # error message if dpid isn't formatted as expected
@@ -160,18 +187,12 @@ def by_file_aop(dpid,
         print(
             f'{dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#')
         return
-#     if(regexpr("DP[1-4]{1}.[0-9]{5}.00[1-2]{1}",dpID)!=1) {
-#             stop(paste(dpID, "is not a properly formatted data product ID. The correct format is DP#.#####.00#", sep=" "))
 
-# }
     # error message if field spectra data are attempted
     if dpid == 'DP1.30012.001':
         print(
             'DP1.30012.001 is the Field spectral data product, which is published as tabular data. Use zipsByProduct() or loadByProduct() to download these data.')
         return
-#   if(dpID=='DP1.30012.001') {
-#     stop('DP1.30012.001 is the Field spectral data product, which is published as tabular data. Use zipsByProduct() or loadByProduct() to download these data.')
-#   }
 
     # error message if site is not a 4-letter character
     site = site.upper()  # make site upper case (if it's not already)
@@ -181,10 +202,6 @@ def by_file_aop(dpid,
             'A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list')
         return
 
-  # if(regexpr('[[:alpha:]]{4}', site)!=1) {
-  #   stop("A four-letter site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list")
-  # }
-
     # error message if year input is not valid
     year = str(year)  # cast year to string (if it's not already)
     year_pattern = "20[1-9][1-9]"
@@ -193,19 +210,9 @@ def by_file_aop(dpid,
             f'{year} is an invalid year. Year is required in the format "2017", eg. Data are available from 2013 to present.')
         return
 
-    # if(regexpr('[[:digit:]]{4}', year)!=1) {
-  #   stop("Year is required (e.g. '2017').")
-  # }
-
     # if token is an empty string, set to None
     if token == '':
         token = None
-
-  # if(identical(token, "")) {
-  #   token <- NA_character_
-  # }
-
-  # releases <- character()
 
     # query the products endpoint for the product requested
     response = get_api(
@@ -227,8 +234,9 @@ def by_file_aop(dpid,
 
 #   # check that token was used
     if token and 'x-ratelimit-limit' in response.headers:
-        if response.headers['x-ratelimit-limit'] == '200':
-            print('API token was not recognized. Public rate limit applied.\n')
+        check_token(response)
+        # if response.headers['x-ratelimit-limit'] == '200':
+        #     print('API token was not recognized. Public rate limit applied.\n')
 
     # get the request respose dictionary
     response_dict = response.json()
@@ -287,8 +295,6 @@ def by_file_aop(dpid,
         if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
             print("Download halted")
             return
-        # print(
-        #     f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n)")
 
     # create folder in working directory to put files in
     if save_path:
