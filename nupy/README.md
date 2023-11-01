@@ -22,5 +22,9 @@ to build:
 ### Mac
 python3 -m build
 
-### PC
-python -m build
+### PC (Bridget's configuration)
+python -m build --no-isolation
+
+Build errored out when not using the --no-isolation, see this post: https://github.com/pypa/pip/issues/7730
+
+The build environment is isolated from the system Python. If you want the build to "see" system installed packages, use --no-isolation.
