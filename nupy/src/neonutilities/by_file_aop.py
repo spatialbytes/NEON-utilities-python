@@ -201,12 +201,12 @@ def by_file_aop(dpid,
     site_pattern = "[A-Z]{4}"
     if not re.fullmatch(site_pattern, site):
         print(
-            'A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list')
+            f'{site} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.')
         return
 
     # error message if year input is not valid
     year = str(year)  # cast year to string (if it's not already)
-    year_pattern = "20[1-9][1-9]"
+    year_pattern = "20[1-9][0-9]"
     if not re.fullmatch(year_pattern, year):
         print(
             f'{year} is an invalid year. Year is required in the format "2017", eg. Data are available from 2013 to present.')
