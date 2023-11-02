@@ -8,20 +8,22 @@ Created on Wed Sep 13 13:10:18 2023
 Created on Wed Sep 13 2023
 @author: Bridget Hass (bhass@battelleecology.org)
 
-Adapted from R neonUtilities byFileAOP written by
+Adapted from R neonUtilities byFileAOP 
+https://github.com/NEONScience/NEON-utilities/blob/main/neonUtilities/R/byFileAOP.R
+written by:
 @author: Claire Lunch (clunch@battelleecology.org)
 @author: Christine Laney (claney@battelleecology.org)
-# https://github.com/NEONScience/NEON-utilities/blob/main/neonUtilities/R/byFileAOP.R
 
 """
 
+from importlib_resources import files
 from pathlib import Path
+#from get_api import get_api
+from neonutilities import get_api
+import pandas as pd
 import re
 # from tdqm import tdqm
 from progress.bar import Bar
-from get_api import get_api
-#from neonutilities import get_api
-import pandas as pd
 from time import sleep
 
 
@@ -91,7 +93,7 @@ def download_file(url, save_path, token=None):
 
     Return
     --------
-    Downloads the file to the path save_path.
+    Downloads the file to the user-specified directory "save_path".
 
     """
     # print('url:', url)
@@ -177,8 +179,8 @@ def by_file_aop(dpid,
 
     Example
     --------
-    Download 2017 vegetation index data from San Joaquin Experimental Range:
-    by_file_aop(dpID="DP3.30026.001", site="SJER", year="2017")
+    Download 2021 CHM data from MCRA:
+    by_file_aop(dpid="DP3.30015.001", site="MCRA", year="2021",save_path="../../test_download")
     """
 
     # error message if dpid isn't formatted as expected
@@ -253,20 +255,21 @@ def by_file_aop(dpid,
     # "Files which are to be used by your installed library should usually be
     # placed inside of the Python module directory itself"
     # https://python-packaging.readthedocs.io/en/latest/non-code-files.html
+    
+    shared_flights_df = pd.read_csv(files('neonutilities').joinpath('shared_flights.csv'))
+    # shared_flights_df = pd.read_csv('shared_flights.csv')
+    # .to_dict(orient='tight',index=False)
 
-    # shared_flights_df = pd.read_csv('./shared_flights.csv')
-    # # .to_dict(orient='tight',index=False)
-
-    # shared_flights_dict = shared_flights_df.set_index(
-    #     ['site'])['flightSite'].to_dict()
-    # if site in shared_flights_dict:
-    #     flightSite = shared_flights_dict[site]
-    #     if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
-    #         print(
-    #             f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
-    #     else:
-    #         print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
-    #     site = flightSite
+    shared_flights_dict = shared_flights_df.set_index(
+        ['site'])['flightSite'].to_dict()
+    if site in shared_flights_dict:
+        flightSite = shared_flights_dict[site]
+        if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
+            print(
+                f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
+        else:
+            print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
+        site = flightSite
 
     # get the urls for months with data available, and subset to site
     site_info = next(
