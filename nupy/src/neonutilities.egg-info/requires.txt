@@ -1,2 +1,5 @@
 datetime
 requests
+pathlib
+progress
+pandas

@@ -5,8 +5,10 @@ src/neonutilities/__init__.py
 src/neonutilities/by_file_aop.py
 src/neonutilities/citation.py
 src/neonutilities/get_api.py
+src/neonutilities/shared_flights.csv
 src/neonutilities.egg-info/PKG-INFO
 src/neonutilities.egg-info/SOURCES.txt
 src/neonutilities.egg-info/dependency_links.txt
 src/neonutilities.egg-info/requires.txt
 src/neonutilities.egg-info/top_level.txt
+tests/test_by_file_aop.py
