@@ -33,9 +33,13 @@ def get_api(api_url,
     def get_status_code_meaning(status_code):
         return requests.status_codes._codes[status_code][0]
 
+    # Set user agent
+    usera = f"neonutilities/{__version__}"
+    
     # Check internet connection
     try:
-        check_connection = requests.get("https://data.neonscience.org/")
+        check_connection = requests.get("https://data.neonscience.org/",
+                                        headers={"User-Agent": usera})
         if check_connection.status_code != 200:
             status_code = check_connection.status_code
             status_code_meaning = get_status_code_meaning(status_code)
@@ -56,10 +60,14 @@ def get_api(api_url,
         try:
             # Construct URL either with or without token
             if token is None:
-                response = requests.get(api_url)
+                response = requests.get(api_url, 
+                                        headers={"accept": "application/json",
+                                        "User-Agent": usera})
             else:
                 response = requests.get(
-                    api_url, headers={"X-API-TOKEN": token, "accept": "application/json"})
+                    api_url, headers={"X-API-TOKEN": token, 
+                                      "accept": "application/json",
+                                      "User-Agent": usera})
 
             # Check for successful response
             if response.status_code == 200:
