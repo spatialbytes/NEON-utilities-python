@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: neonutilities
-Version: 0.0.3
+Version: 0.0.4
 Summary: A package for accessing and wrangling data generated and published by the National Ecological Observatory Network.
 Author-email: Claire Lunch <clunch@battelleecology.org>, Bridget Hass <bhass@battelleecology.org>, Zach Nicherson <nickerson@battelleecology.org>
 License:                     GNU AFFERO GENERAL PUBLIC LICENSE

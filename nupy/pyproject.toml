@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonutilities"
-version = "0.0.3"
+dynamic = ["version"]
 authors = [
     {name="Claire Lunch", email="clunch@battelleecology.org"},
     {name="Bridget Hass", email="bhass@battelleecology.org"},
@@ -29,3 +29,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 neonutilities = ["*.csv"]
+
+[tool.setuptools.dynamic]
+version = {attr = "neonutilities.__version__"}

@@ -34,7 +34,8 @@ def get_api(api_url,
         return requests.status_codes._codes[status_code][0]
 
     # Set user agent
-    usera = f"neonutilities/{__version__}"
+    usera = f"neonutilities/{__version__} Python/{platform.python_version()} {platform.platform()}"
+    print(usera)
     
     # Check internet connection
     try:
