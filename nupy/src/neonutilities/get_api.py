@@ -3,7 +3,8 @@
 
 import requests
 import time
-
+import platform
+import importlib.metadata
 
 def get_api(api_url,
             token=None):
@@ -32,10 +33,13 @@ def get_api(api_url,
     """
     def get_status_code_meaning(status_code):
         return requests.status_codes._codes[status_code][0]
+    
+    vers = importlib.metadata.version('neonutilities')
+    plat = platform.python_version()
+    osplat = platform.platform()
 
     # Set user agent
-    usera = f"neonutilities/{__version__} Python/{platform.python_version()} {platform.platform()}"
-    print(usera)
+    usera = f"neonutilities/{vers} Python/{plat} {osplat}"
     
     # Check internet connection
     try:
