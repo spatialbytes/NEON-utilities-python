@@ -44,11 +44,13 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
     # error message if dpID is not formatted correctly
     if not re.search(pattern="DP[1-4]{1}.[0-9]{5}.00[0-9]{1}", 
                  string=dpID):
-        sys.exit(f"{dpID} is not a properly formatted data product ID. The correct format is DP#.#####.00#")
+        print(f"{dpID} is not a properly formatted data product ID. The correct format is DP#.#####.00#")
+        return None
     
     # error message if package is not basic or expanded
     if not package in ["basic","expanded"]:
-        sys.exit(f"{package} is not a valid package name. Package must be basic or expanded")
+        print(f"{package} is not a valid package name. Package must be basic or expanded")
+        return None
         
     # many more error messages and special handling needed here - see R package
     
@@ -61,21 +63,37 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
                           +dpID+"?release="+release, token=token)
     
     if prodreq==None:
-        sys.exit("Data product was not found or API was unreachable.")
+        if release=="LATEST":
+            print(f"No data found for product {dpID}. LATEST data requested; check that token is valid for LATEST access.")
+            return None
+        else:
+            if release!="current" and release!="PROVISIONAL":
+                rels = get_api(api_url="http://data.neonscience.org/api/v0/releases/", 
+                               token=token)
+                relj=rels.json()
+                reld=relj["data"]
+                rellist=[]
+                for i in range(0, len(reld)):
+                    rellist.append(reld[i]["release"])
+                if not release in rellist:
+                    print(f"Release not found. Valid releases are {rellist}")
+                    return None
+                else:
+                    print("Data product was not found or API was unreachable.")
+                    return None
+            else:
+                print("Data product was not found or API was unreachable.")
+                return None
         
     avail=prodreq.json()
     
     # error message if product or data not found
-    # something is funky with the valid releases check - checking with Christine and Jeremy
+    # I think this would never be called due to the way get_api() is set up
+    # see what happens if product is found, but no data
     try:
         avail["error"]["status"]
-        if release=="LATEST":
-            sys.exit(f"No data found for product {dpID}. LATEST data requested; check that token is valid for LATEST access.")
-        else:
-            if re.search(pattern="Release not found", string=avail["error"]["detail"]):
-                sys.exit(f"Release not found. Valid releases for product {dpID} are {avail['data']['validReleases']}")
-            else:
-                sys.exit(f"No data found for product {dpID}")
+        print(f"No data found for product {dpID}")
+        return None
     except:
         pass
     
