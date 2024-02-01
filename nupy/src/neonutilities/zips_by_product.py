@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import get_api
 import re
 import json
 import sys
+from .get_api import get_api
 
 def zips_by_product(dpID, site, startdate, enddate, package="basic", 
                     release="current", include_provisional=False, 
@@ -54,8 +54,8 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
     
     # query the /products endpoint for the product requested
     if release=="current" or release=="PROVISIONAL":
-        prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"+dpID,
-                          token=token)
+        prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
+                          +dpID, token=token)
     else:
         prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
                           +dpID+"?release="+release, token=token)
@@ -66,6 +66,7 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
     avail=prodreq.json()
     
     # error message if product or data not found
+    # something is funky with the valid releases check - checking with Christine and Jeremy
     try:
         avail["error"]["status"]
         if release=="LATEST":
@@ -83,6 +84,11 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
         if prodreq.headers.get('x-ratelimit-limit')==200:
             print("API token was not recognized. Public rate limit applied.\n")
     
-    
-
+    # get data urls
+    month_urls=[]
+    for i in range(0, len(avail["data"]["siteCodes"])):
+        month_urls.append(avail["data"]["siteCodes"][i]["availableDataUrls"])
+        
+    # temporary output for testing
+    return(month_urls)
 
