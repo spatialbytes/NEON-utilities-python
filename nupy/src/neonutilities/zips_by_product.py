@@ -133,12 +133,8 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     # subset by start date
     if startdate!=None:
-        start_urls=[]
         ste=re.compile("20[0-9]{2}-[0-9]{2}")
-        dateset=[ste.findall(st) for st in site_urls if ste.findall(st)]
-        dateset=sum(dateset, [])
-        start_urls=[site_urls for ds in dateset if ds>=startdate]
-        # I think I need to un-nest again here
+        start_urls=[st for st in site_urls if ste.search(st).group(0)>=startdate]
     else:
         start_urls=site_urls
         
@@ -147,7 +143,19 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         print("There are no data at the selected date(s).")
         return None
 
+    # subset by end date
+    if enddate!=None:
+        ete=re.compile("20[0-9]{2}-[0-9]{2}")
+        end_urls=[et for et in start_urls if ete.search(et).group(0)<=enddate]
+    else:
+        end_urls=start_urls
+    
+    # check for no results
+    if len(end_urls)==0:
+        print("There are no data at the selected date(s).")
+        return None
+
     
     # temporary output for testing
-    return(start_urls)
+    return(end_urls)
 
