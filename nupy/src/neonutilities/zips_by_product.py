@@ -6,8 +6,9 @@ import json
 import sys
 from .get_api import get_api
 
-def zips_by_product(dpID, site, startdate, enddate, package="basic", 
-                    release="current", include_provisional=False, 
+def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
+                    package="basic", release="current", 
+                    include_provisional=False, 
                     token=None, savepath=None):
     """
     Download product-site-month data package files from NEON.
@@ -89,7 +90,6 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
     
     # error message if product or data not found
     # I think this would never be called due to the way get_api() is set up
-    # see what happens if product is found, but no data
     try:
         avail["error"]["status"]
         print(f"No data found for product {dpID}")
@@ -106,7 +106,48 @@ def zips_by_product(dpID, site, startdate, enddate, package="basic",
     month_urls=[]
     for i in range(0, len(avail["data"]["siteCodes"])):
         month_urls.append(avail["data"]["siteCodes"][i]["availableDataUrls"])
+    
+    # check for no results
+    if len(month_urls)==0:
+        print("There are no data matching the search criteria.")
+        return None
+    
+    # un-nest list
+    month_urls=sum(month_urls, [])
+            
+    # subset by site
+    if site!="all":
+        site_urls=[]
+        for si in site:
+            se=re.compile(si)
+            month_sub=[s for s in month_urls if se.search(s)]
+            site_urls.append(month_sub)
+        site_urls=sum(site_urls, [])
+    else:
+        site_urls=month_urls
+    
+    # check for no results
+    if len(site_urls)==0:
+        print("There are no data at the selected sites.")
+        return None
+    
+    # subset by start date
+    if startdate!=None:
+        start_urls=[]
+        ste=re.compile("20[0-9]{2}-[0-9]{2}")
+        dateset=[ste.findall(st) for st in site_urls if ste.findall(st)]
+        dateset=sum(dateset, [])
+        start_urls=[site_urls for ds in dateset if ds>=startdate]
+        # I think I need to un-nest again here
+    else:
+        start_urls=site_urls
         
+    # check for no results
+    if len(start_urls)==0:
+        print("There are no data at the selected date(s).")
+        return None
+
+    
     # temporary output for testing
-    return(month_urls)
+    return(start_urls)
 
