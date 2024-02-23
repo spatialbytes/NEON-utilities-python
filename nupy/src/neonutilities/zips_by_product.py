@@ -8,7 +8,7 @@ from .get_api import get_api
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
-                    include_provisional=False, 
+                    include_provisional=False, progress=True,
                     token=None, savepath=None):
     """
     Download product-site-month data package files from NEON.
@@ -22,6 +22,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     enddate: Latest date of data to download, in the form YYYY-MM
     release: Data release to download. Defaults to the most recent release.
     include_provisional: Should Provisional data be returned in the download? Defaults to False.
+    progress: Should the function display progress bars as it runs? Defaults to True
     token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
     savepath: File path of location to save data.
 
@@ -156,6 +157,11 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         return None
 
     
+    # pass to get_zip_urls to query each month for url
+    zipurls=get_zip_urls(url_set=end_urls, package=package, release=release,
+                         include_provisional=include_provisional, token=token,
+                         progress=progress)
+
     # temporary output for testing
-    return(end_urls)
+    return(zipurls)
 

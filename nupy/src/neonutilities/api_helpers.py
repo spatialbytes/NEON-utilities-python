@@ -5,6 +5,15 @@ import requests
 import time
 import platform
 import importlib.metadata
+from tqdm import tqdm
+
+# Set global user agent
+vers = importlib.metadata.version('neonutilities')
+plat = platform.python_version()
+osplat = platform.platform()
+
+usera = f"neonutilities/{vers} Python/{plat} {osplat}"
+
 
 def get_api(api_url,
             token=None):
@@ -33,14 +42,7 @@ def get_api(api_url,
     """
     def get_status_code_meaning(status_code):
         return requests.status_codes._codes[status_code][0]
-    
-    vers = importlib.metadata.version('neonutilities')
-    plat = platform.python_version()
-    osplat = platform.platform()
-
-    # Set user agent
-    usera = f"neonutilities/{vers} Python/{plat} {osplat}"
-    
+        
     # Check internet connection
     try:
         check_connection = requests.get("https://data.neonscience.org/",
@@ -117,7 +119,77 @@ def get_api(api_url,
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
             return None
 
-# api_url = 'https://data.neonscience.org/api/v0/samples/classes?sampleTag=MCRA.SS.20230425.POM.1'
-# token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2RhdGEubmVvbnNjaWVuY2Uub3JnL2FwaS92MC8iLCJzdWIiOiJuaWNrZXJzb25AYmF0dGVsbGVlY29sb2d5Lm9yZyIsInNjb3BlIjoicmF0ZTp1bmxpbWl0ZWQgcmVhZDpyZWxlYXNlcyByZWFkOnJlbGVhc2VzLWxhdGVzdCIsImlzcyI6Imh0dHBzOi8vZGF0YS5uZW9uc2NpZW5jZS5vcmcvIiwiZXhwIjoxNzkzNjQ2MTUyLCJpYXQiOjE2MzU5NjYxNTIsImVtYWlsIjoibmlja2Vyc29uQGJhdHRlbGxlZWNvbG9neS5vcmcifQ.dUyan8p2z42DWimkrRcxBUOBrbwL5dqPpF_55GqKbLnqZAFwcg6pjPu-ByugkaixeQqL7LL_BCny-GNjh7vlWw'
-# get_api(api_url,token=None)
-# response.json()
+
+
+def get_zip_urls(url_set, 
+                 package,
+                 release,
+                 include_provisional,
+                 token=None,
+                 progress=True):
+    """
+
+    Given a set of urls to the data endpoint of the NEON API, returns the set of zip files for each site-month package. Internal function, called by zips_by_product().
+
+    Parameters
+    --------
+    url_set: A list of urls pointing to the data endpoint of the NEON API
+    package: Data download package, basic or expanded.
+    release: Data release to download.
+    include_provisional: Should Provisional data be returned in the download?
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+    progress: Should the progress bar be displayed?
+
+    Return
+    --------
+    List of urls pointing to zip files for each product-site-month.
+
+    Created on Feb 23 2024
+
+    @author: Claire Lunch
+    """
+    
+    tmpfiles=[]
+    provflag=False
+    for i in tqdm(range(0,len(url_set)), disable=not progress):
+        
+        # get list of files from data endpoint
+        m_res=get_api(api_url=url_set[i], token=token)
+        m_di=m_res.json()
+        
+        # only keep queried release
+        if release!="current":
+            if release!=m_di["data"]["release"]:
+                continue
+            
+        # if include_provisional=F, exclude provisional
+        if not include_provisional:
+            if m_di["data"]["release"]=="PROVISIONAL":
+                provflag=True
+                continue
+            
+        # check for no files
+        if not "packages" in list(m_di["data"]):
+            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            continue
+            
+        if len(m_di["data"]["packages"])==0:
+            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            continue
+        
+        # if package=expanded, check for expanded. reassign to basic if not found.
+        if package=="expanded":
+            if not package in [p["type"] for p in m_di["data"]["packages"]]:
+                print(f"No expanded package found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}. Basic package downloaded instead.")
+                package="basic"
+                
+        # get zip file url and file name
+        z=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        h=requests.head(z, headers={"X-API-TOKEN": token, 
+                          "accept": "application/json",
+                          "User-Agent": usera}) # make a little HEAD function for token & error handling. or make it an option in get_api?
+        flnm=h.headers["content-disposition"] # returns extra text. in R, gsubbing out, but in python there are extra quotes
+        
+        
+        
+        
