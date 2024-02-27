@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import re
 import time
 import platform
 import importlib.metadata
@@ -120,6 +121,106 @@ def get_api(api_url,
             return None
 
 
+def get_api_headers(api_url,
+            token=None):
+    """
+
+    Accesses the API with options to use the user-specific API token generated within neon.datascience user accounts.
+
+    Parameters
+    --------
+    api_url: The API endpoint URL.
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+
+    Return
+    --------
+    The header only from an API GET response
+
+    Created on Feb 26 2024
+
+    Adapted from get_api
+    @author: Zachary Nickerson
+    @author: Claire Lunch
+    """
+    def get_status_code_meaning(status_code):
+        return requests.status_codes._codes[status_code][0]
+        
+    # Check internet connection
+    try:
+        check_connection = requests.head("https://data.neonscience.org/",
+                                        headers={"User-Agent": usera})
+        if check_connection.status_code != 200:
+            status_code = check_connection.status_code
+            status_code_meaning = get_status_code_meaning(status_code)
+            print(
+                f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
+            return None
+    except:  # ConnectionError as e
+        print("No internet connection detected. Cannot access NEON API.\n")
+        return None
+
+    # Make 5 request attempts. If the rate limit is reached, pause for the
+    # burst reset time to try again.
+    j = 1
+
+    while (j <= 5):
+
+        # Try making the request
+        try:
+            # Construct URL either with or without token
+            if token is None:
+                response = requests.head(api_url, 
+                                        headers={"accept": "application/json",
+                                        "User-Agent": usera})
+            else:
+                response = requests.head(
+                    api_url, headers={"X-API-TOKEN": token, 
+                                      "accept": "application/json",
+                                      "User-Agent": usera})
+
+            # Check for successful response
+            if response.status_code == 200:
+
+                if 'x-ratelimit-limit' in response.headers:
+                    # Retry get request if rate limit is reached
+                    limit_remain = response.headers.get(
+                        'x-ratelimit-remaining')
+                    print(f"x-ratelimit-remaining: {limit_remain}")
+                    # this is printing the rate limit every time the function is used
+                    if int(limit_remain) < 1:
+                        # Wait for the reset time
+                        time_reset = response.headers.get('x-ratelimit-reset')
+                        print(
+                            f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
+                        time.sleep(int(time_reset))
+                        # Increment loop to retry request attempt
+                        j += 1
+
+                    else:
+                        # If rate limit is not reached, exit out of loop
+                        j += 5
+
+                else:
+                    # If x-ratelimit-limit not found in headers, exit out of
+                    # loop (don't need to retry because of rate-limit)
+                    j += 5
+
+            else:
+                # Return nothing if request failed (status code is not 200)
+                # Print the status code and it's meaning
+                status_code_meaning = get_status_code_meaning(
+                    response.status_code)
+                print(
+                    f"Request failed with status code {response.status_code}, indicating '{status_code_meaning}'\n")
+                return None
+
+            return response
+
+        except:
+            print(
+                "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
+            return None
+
 
 def get_zip_urls(url_set, 
                  package,
@@ -151,6 +252,9 @@ def get_zip_urls(url_set,
     
     tmpfiles=[]
     provflag=False
+    if progress:
+        print("Finding available files")
+        
     for i in tqdm(range(0,len(url_set)), disable=not progress):
         
         # get list of files from data endpoint
@@ -185,11 +289,10 @@ def get_zip_urls(url_set,
                 
         # get zip file url and file name
         z=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
-        h=requests.head(z, headers={"X-API-TOKEN": token, 
-                          "accept": "application/json",
-                          "User-Agent": usera}) # make a little HEAD function for token & error handling. or make it an option in get_api?
-        flnm=h.headers["content-disposition"] # returns extra text. in R, gsubbing out, but in python there are extra quotes
-        
+        h=get_api_headers(api_url=z[0], token=token)
+        fltp=re.sub(pattern='"', repl="", 
+                    string=h.headers["content-disposition"])
+        flnm=re.sub(pattern="inline; filename=", repl="", string=fltp)
         
         
         
