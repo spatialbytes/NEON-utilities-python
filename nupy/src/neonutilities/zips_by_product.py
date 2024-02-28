@@ -4,8 +4,10 @@
 import re
 import json
 import sys
+import os
 from .api_helpers import get_api
 from .api_helpers import get_zip_urls
+from .api_helpers import download_zips
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
@@ -163,6 +165,17 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                          include_provisional=include_provisional, token=token,
                          progress=progress)
 
-    # temporary output for testing
-    return(zipurls)
-
+    # add download size check
+    
+    # set up folder to save to
+    if savepath is None:
+        savepath=os.getcwd()
+    outpath=savepath+"/filesToStack"+dpID[4:9]+"/"
+    
+    if not os.path.exists(outpath):
+        os.makedirs(outpath)
+    
+    # download data from each url
+    download_zips(url_set=zipurls, outpath=outpath,
+                  token=token, progress=progress)
+    

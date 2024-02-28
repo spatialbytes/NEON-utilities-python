@@ -307,7 +307,9 @@ def get_zip_urls(url_set,
         z.append(zi)
         sz.append(flszi)
         rel.append(m_di["data"]["release"])
-        zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+    
+    z=sum(z, [])
+    zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
         
     # provisional message
     if(provflag):
@@ -315,3 +317,53 @@ def get_zip_urls(url_set,
         
     return(zpfiles)
         
+
+def download_zips(url_set, 
+                  outpath,
+                  token=None,
+                  progress=True):
+    """
+
+    Given a set of urls to NEON data zip packages, downloads the contents of each. Internal function, called by zips_by_product().
+
+    Parameters
+    --------
+    url_set: A list of urls pointing to zipped data packages
+    outpath: Filepath of the folder to download to
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+    progress: Should the progress bar be displayed?
+
+    Return
+    --------
+    Zip files in the designated folder
+
+    Created on Feb 28 2024
+
+    @author: Claire Lunch
+    """
+    
+    if progress:
+        print("Downloading files")
+        
+    for i in tqdm(range(0,len(url_set["z"])), disable=not progress):
+
+        try:
+            if token is None:
+                with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                    content = requests.get(url_set["z"][i], stream=True, 
+                                           headers={"accept": "application/json",
+                                           "User-Agent": usera}).content
+                    out_file.write(content)
+            else:
+                with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                    content = requests.get(url_set["z"][i], stream=True, 
+                                           headers={"X-API-TOKEN": token, 
+                                                    "accept": "application/json",
+                                                    "User-Agent": usera}).content
+                    out_file.write(content)
+
+        except:
+            print(f"File {url_set['flnm'][i]} could not be downloaded. Try increasing the timeout limit.")
+            return None
+        
+    return None
