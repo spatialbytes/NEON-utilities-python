@@ -4,7 +4,8 @@
 import re
 import json
 import sys
-from .get_api import get_api
+from .api_helpers import get_api
+from .api_helpers import get_zip_urls
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 

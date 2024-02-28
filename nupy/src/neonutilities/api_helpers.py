@@ -250,7 +250,10 @@ def get_zip_urls(url_set,
     @author: Claire Lunch
     """
     
-    tmpfiles=[]
+    flnm=[]
+    z=[]
+    sz=[]
+    rel=[]
     provflag=False
     if progress:
         print("Finding available files")
@@ -288,11 +291,27 @@ def get_zip_urls(url_set,
                 package="basic"
                 
         # get zip file url and file name
-        z=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
-        h=get_api_headers(api_url=z[0], token=token)
+        zi=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        h=get_api_headers(api_url=zi[0], token=token)
         fltp=re.sub(pattern='"', repl="", 
                     string=h.headers["content-disposition"])
-        flnm=re.sub(pattern="inline; filename=", repl="", string=fltp)
+        flnmi=re.sub(pattern="inline; filename=", repl="", string=fltp)
         
+        # get file sizes
+        szr=re.compile(package)
+        flszs=[siz["size"] for siz in m_di["data"]["files"] if szr.search(siz["url"])]
+        flszi=sum(flszs)
         
+        # return url, file name, file size, and release
+        flnm.append(flnmi)
+        z.append(zi)
+        sz.append(flszi)
+        rel.append(m_di["data"]["release"])
+        zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+        
+    # provisional message
+    if(provflag):
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include.provisional=TRUE.")
+        
+    return(zpfiles)
         
