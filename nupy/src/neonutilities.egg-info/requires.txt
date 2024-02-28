@@ -1,2 +1,6 @@
 datetime
 requests
+pathlib
+progress
+pandas
+importlib.metadata

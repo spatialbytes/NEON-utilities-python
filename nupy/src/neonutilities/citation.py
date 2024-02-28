@@ -32,6 +32,8 @@ def get_citation(dpID, release):
     """
 
     if release == "PROVISIONAL":
+        
+        # construct citation from template
         citI = "@misc{DPID/provisional,\n  doi = {},\n  url = {https://data.neonscience.org/data-products/DPID},\n  author = {{National Ecological Observatory Network (NEON)}},\n  language = {en},\n  title = {NAME (DPID)},\n  publisher = {National Ecological Observatory Network (NEON)},\n  year = {YEAR}\n}"
         citDP = citI.replace("DPID", dpID)
         citY = citDP.replace("YEAR", str(datetime.now().year))
@@ -46,4 +48,20 @@ def get_citation(dpID, release):
 
     else:
 
-        print("DOI retrieval code coming soon")
+        # get DOI from NEON API, then citation from DOI API
+        pr_req = requests.get("https://data.neonscience.org/api/v0/products/" +
+                              dpID)
+        pr_str = pr_req.json()
+        rels = pr_str["data"]["releases"]
+        relinfo = next((i for i in rels if i["release"] == release), None)
+        
+        if relinfo is None:
+            print("There are no data with dpID=" + dpID + 
+                  " and release=" + release)
+            return relinfo
+        
+        else:
+            doi = relinfo["productDoi"]["url"]
+            doi_req = requests.get(doi, 
+                                   headers={"accept": "application/x-bibtex"})
+            return doi_req.text
