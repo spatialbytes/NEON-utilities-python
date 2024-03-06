@@ -261,15 +261,12 @@ def by_file_aop(dpid,
     # placed inside of the Python module directory itself"
     # https://python-packaging.readthedocs.io/en/latest/non-code-files.html
 
-    # shared_flights_df = pd.read_csv(
-    #    files('neonutilities').joinpath('shared_flights.csv'))
     # shared_flights_df = pd.read_csv('./__resources__/shared_flights.csv')
     # shared_flights_file = importlib_resources.files / 'shared_flights.csv'
     shared_flights_file = (importlib_resources.files(
         __resources__) / 'shared_flights.csv')
     # print(shared_flights_file)
     shared_flights_df = pd.read_csv(shared_flights_file)
-    # .to_dict(orient='tight',index=False)
 
     shared_flights_dict = shared_flights_df.set_index(
         ['site'])['flightSite'].to_dict()
