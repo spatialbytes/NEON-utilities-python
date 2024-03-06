@@ -18,7 +18,8 @@ written by:
 # TODO: Get DOIs and generate citations (using get_citation function)
 
 import importlib
-from importlib_resources import files
+import importlib_resources
+from . import __resources__
 from pathlib import Path
 # from aop_helpers import get_api
 from neonutilities import get_api
@@ -262,7 +263,12 @@ def by_file_aop(dpid,
 
     # shared_flights_df = pd.read_csv(
     #    files('neonutilities').joinpath('shared_flights.csv'))
-    shared_flights_df = pd.read_csv('shared_flights.csv')
+    # shared_flights_df = pd.read_csv('./__resources__/shared_flights.csv')
+    # shared_flights_file = importlib_resources.files / 'shared_flights.csv'
+    shared_flights_file = (importlib_resources.files(
+        __resources__) / 'shared_flights.csv')
+    # print(shared_flights_file)
+    shared_flights_df = pd.read_csv(shared_flights_file)
     # .to_dict(orient='tight',index=False)
 
     shared_flights_dict = shared_flights_df.set_index(
@@ -303,7 +309,7 @@ def by_file_aop(dpid,
     # ask user if they want to proceed
     if check_size:
         if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
-            print("Download halted")
+            print("Download halted.")
             return
 
     # create folder in working directory to put files in
