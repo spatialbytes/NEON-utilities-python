@@ -42,11 +42,13 @@ pip show -f neonutilities
 ```
 
 ## Testing Instructions
-First, build the latest version of the package, and cd to GitHub/NEON-utilities-python/nupy
+- First, build the latest version of the package, and cd to GitHub/NEON-utilities-python/nupy
+- Test functions must start with `test`, eg. `test_by_file_aop...`.
+- For all pytest command line options see: https://docs.pytest.org/en/6.2.x/usage.html
 
-To run all tests in the tests directory:
+To run all tests in the tests directory: (`-v` is an optional parameter meaning verbose):
 ```
-pytest ./tests/
+pytest ./tests/ -v
 ```
 
 To run tests in a single test file:
