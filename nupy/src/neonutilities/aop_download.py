@@ -157,9 +157,30 @@ def get_file_urls(urls, token=None):
 # %%
 
 
+def get_shared_flights(site):
+    shared_flights_file = (importlib_resources.files(
+        __resources__) / 'shared_flights.csv')
+
+    shared_flights_df = pd.read_csv(shared_flights_file)
+
+    shared_flights_dict = shared_flights_df.set_index(
+        ['site'])['flightSite'].to_dict()
+    if site in shared_flights_dict:
+        flightSite = shared_flights_dict[site]
+        if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
+            print(
+                f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
+        else:
+            print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
+        site = flightSite
+    return site
+# %%
+
+
 def by_file_aop(dpid,
                 site,
                 year,
+                include_provisional=False,
                 check_size=True,
                 save_path=None,
                 token=None):
@@ -174,6 +195,7 @@ def by_file_aop(dpid,
     site: The four-letter code of a single NEON site, e.g. 'CLBJ'. String.
     year: The four-digit year to search for data. String or integer.
     check_size: True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check.size=False.
+    include_provisional: True or False, should provisional data be included in downloaded files? Defaults to F. See https://www.neonscience.org/data-samples/data-management/data-revisions-releases for details on the difference between provisional and released data.
     save_path: The file path to download to. Defaults to None, in which case the working directory is used.
     token: User specific API token (generated within neon.datascience user accounts). Optional.
 
@@ -253,31 +275,8 @@ def by_file_aop(dpid,
             f'{dpid} is not a remote sensing product. Use zipsByProduct()')
         return
 
-    # check for sites that are flown under the flight box of a different site
-    # this next section pulls from the shared_flights.csv file (could also use
-    # a Python pickle, but csv is more transparent on Git)
-    # still need to determine the best place to put it, link below recommends
-    # "Files which are to be used by your installed library should usually be
-    # placed inside of the Python module directory itself"
-    # https://python-packaging.readthedocs.io/en/latest/non-code-files.html
-
-    # shared_flights_df = pd.read_csv('./__resources__/shared_flights.csv')
-    # shared_flights_file = importlib_resources.files / 'shared_flights.csv'
-    shared_flights_file = (importlib_resources.files(
-        __resources__) / 'shared_flights.csv')
-    # print(shared_flights_file)
-    shared_flights_df = pd.read_csv(shared_flights_file)
-
-    shared_flights_dict = shared_flights_df.set_index(
-        ['site'])['flightSite'].to_dict()
-    if site in shared_flights_dict:
-        flightSite = shared_flights_dict[site]
-        if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
-            print(
-                f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
-        else:
-            print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
-        site = flightSite
+    # replace collocated site with the site name it's published under
+    site = get_shared_flights(site)
 
     # get the urls for months with data available, and subset to site
     site_info = next(
@@ -303,7 +302,7 @@ def by_file_aop(dpid,
     download_size_bytes = file_url_df['size'].sum()
     download_size = convert_byte_size(download_size_bytes)
 
-    # ask user if they want to proceed
+    # report data download size and ask user if they want to proceed
     if check_size:
         if input(f"Continuing will download {num_files} totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
             print("Download halted.")
@@ -463,29 +462,8 @@ def by_tile_aop(dpid,
             f'{dpid} is not a remote sensing product. Use zipsByProduct()')
         return
 
-    # check for sites that are flown under the flight box of a different site
-    # this next section pulls from the shared_flights.csv file (could also use
-    # a Python pickle, but csv is more transparent on Git)
-    # still need to determine the best place to put it, link below recommends
-    # "Files which are to be used by your installed library should usually be
-    # placed inside of the Python module directory itself"
-    # https://python-packaging.readthedocs.io/en/latest/non-code-files.html
-
-    # shared_flights_df = pd.read_csv(
-    #     files('neonutilities').joinpath('shared_flights.csv'))
-    # # shared_flights_df = pd.read_csv('shared_flights.csv')
-    # # .to_dict(orient='tight',index=False)
-
-    # shared_flights_dict = shared_flights_df.set_index(
-    #     ['site'])['flightSite'].to_dict()
-    # if site in shared_flights_dict:
-    #     flightSite = shared_flights_dict[site]
-    #     if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
-    #         print(
-    #             f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
-    #     else:
-    #         print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year. \nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
-    #     site = flightSite
+    # replace collocated site with the site name it's published under
+    site = get_shared_flights(site)
 
     # get the urls for months with data available, and subset to site
     site_info = next(

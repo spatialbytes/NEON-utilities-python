@@ -40,3 +40,21 @@ python -m build --no-isolation
 pip install "C:\Users\bhass\Documents\GitHubRepos\NEON-utilities-python\nupy\dist\neonutilities-0.0.2-py3-none-any.whl" -vvv
 pip show -f neonutilities
 ```
+
+## Testing Instructions
+First, build the latest version of the package, and cd to GitHub/NEON-utilities-python/nupy
+
+To run all tests in the tests directory:
+```
+pytest ./tests/
+```
+
+To run tests in a single test file:
+```
+pytest ./tests/test_aop_download.py
+```
+
+To run specific tests based off key words in a test file:
+```
+pytest ./tests/test_aop_download.py -k 'test_by_file_aop_invalid or test_by_tile_aop_invalid'
+```
