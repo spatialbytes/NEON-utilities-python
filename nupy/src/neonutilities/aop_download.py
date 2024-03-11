@@ -137,7 +137,7 @@ def get_file_urls(urls, token=None):
     release:
 
     """
-
+    all_file_url_df = pd.DataFrame()
     for url in urls:
         req = get_api(api_url=url, token=token)
         if not req:
@@ -149,10 +149,15 @@ def get_file_urls(urls, token=None):
 
         file_url_dict = req.json()['data']['files']
         file_url_df = pd.DataFrame(data=file_url_dict)
+
         # drop md5 and crc32 columns, which are all NaNs
         file_url_df.drop(columns=['md5', 'crc32'], inplace=True)
 
-    return file_url_df, release
+        # append the new dataframe to the existing one
+        all_file_url_df = pd.concat(
+            [all_file_url_df, file_url_df], ignore_index=True)
+
+    return all_file_url_df, release
 
 # %%
 
@@ -474,8 +479,10 @@ def by_tile_aop(dpid,
     if len(site_urls) == 0:
         print("There are no data available at the selected site and year.")
 
+    site_year_urls = [url for url in site_urls if str(year) in url]
+
     # get file url dataframe for the available month url(s)
-    file_url_df, release = get_file_urls(site_urls, token=token)
+    file_url_df, release = get_file_urls(site_year_urls, token=token)
 
     # get the number of files in the dataframe, if there are no files to download, return
     num_files = len(file_url_df)
