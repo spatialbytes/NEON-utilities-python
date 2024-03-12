@@ -61,6 +61,16 @@ def test_by_file_aop_invalid_year_format(capsys, year):
     out, err = capsys.readouterr()
     assert out == f'{year} is an invalid year. Year is required in the format "2017", eg. Data are available from 2013 to present.\n'
 
+
+def test_by_file_aop_no_data_available_message(capsys, monkeypatch):
+    """
+    Test that the by_file_aop() function returns the expected error message when no data is available
+    """
+    monkeypatch.setattr('builtins.input', lambda _: "n")
+    by_file_aop(dpid="DP3.30024.001", site="MCRA", year='2020')
+    out, err = capsys.readouterr()
+    assert out == 'There are no data available at the selected site and year.\n'
+
 # These next two tests are making API request, so if there is a print statement in get_api for x-ratelimit-remaining,
 # it will FAIL without a token. Should mock that part. And/or just test the get_shared_flights function?
 
@@ -80,8 +90,25 @@ def test_by_file_aop_collocated_site_message(capsys, monkeypatch, year, site, fl
 
 
 def test_by_file_aop_noncollocated_site_message(capsys, monkeypatch):
-    site = "STEI"
+    site = "MCRA"
     monkeypatch.setattr('builtins.input', lambda _: "n")
-    by_file_aop(dpid="DP3.30015.001", site=site, year="2022", token=token)
+    by_file_aop(dpid="DP3.30015.001", site=site, year="2021", token=token)
     out, err = capsys.readouterr()
     assert out == f'Download halted.\n'
+
+
+def test_by_file_aop_provisional_true_no_data_available_message(capsys, monkeypatch):
+    site = "SCBI"
+    monkeypatch.setattr('builtins.input', lambda _: "n")
+    by_file_aop(dpid="DP3.30015.001", site=site, year="2023", token=token)
+    out, err = capsys.readouterr()
+    assert out == f'No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.\n'
+
+
+def test_by_file_aop_provisional_true_and_data_available_message(capsys, monkeypatch):
+    site = "STEI"
+    monkeypatch.setattr('builtins.input', lambda _: "n")
+    by_file_aop(dpid="DP3.30015.001", site=site, year="2022",
+                include_provisional=True, token=token)
+    out, err = capsys.readouterr()
+    assert out == f'Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.\nDownload halted.\n'
