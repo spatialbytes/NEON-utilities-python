@@ -6,11 +6,19 @@ Created on Wed Feb 21 17:00:19 2024
 
 Unit tests for by_file_aop and by_tile_aop.
 
-These mainly test invalid inputs so far.
+These mainly test messages for invalid inputs, collocated sites, and provisional scenarios so far.
 
 More complete functional testing is included in the nu_python_testing repository.
 https://github.com/NEONScience/nu-python-testing
+
+Notes:
+- The capsys fixture captures the output of the function to enable checking the output messages
+- Paramaterization allows for testing different sets of inputs with the same test
+- The unittest "monkeypatch" mocks the user input to say "n" (no) to avoid downloading data
+
 """
+
+# import required packages
 import os
 import shutil
 from pathlib import Path
@@ -23,11 +31,12 @@ from neonutilities import by_file_aop, by_tile_aop
 import pytest
 from unittest import mock
 
-# probably shouldn't have token hard-coded like this, but it works for now
-token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJhdWQiOiJodHRwczovL2RhdGEubmVvbnNjaWVuY2Uub3JnL2FwaS92MC8iLCJzdWIiOiJuaWNrZXJzb25AYmF0dGVsbGVlY29sb2d5Lm9yZyIsInNjb3BlIjoicmF0ZTp1bmxpbWl0ZWQgcmVhZDpyZWxlYXNlcyByZWFkOnJlbGVhc2VzLWxhdGVzdCIsImlzcyI6Imh0dHBzOi8vZGF0YS5uZW9uc2NpZW5jZS5vcmcvIiwiZXhwIjoxNzkzNjQ2MTUyLCJpYXQiOjE2MzU5NjYxNTIsImVtYWlsIjoibmlja2Vyc29uQGJhdHRlbGxlZWNvbG9neS5vcmcifQ.dUyan8p2z42DWimkrRcxBUOBrbwL5dqPpF_55GqKbLnqZAFwcg6pjPu-ByugkaixeQqL7LL_BCny-GNjh7vlWw'
+# read in token from os.environ
+token = os.environ.get("AOP_TOKEN")
+
+### Test invalid inputs and make sure informational messages display correctly ###
 
 
-# test print-out messages for incorrect inputs using capsys fixture
 def test_by_file_aop_invalid_dpid_format(capsys):
     """
     Test that the by_file_aop() function returns the expected error message when an invalid dpid format is provided
@@ -61,6 +70,8 @@ def test_by_file_aop_invalid_year_format(capsys, year):
     out, err = capsys.readouterr()
     assert out == f'{year} is an invalid year. Year is required in the format "2017", eg. Data are available from 2013 to present.\n'
 
+# Test message if no data is available (eg. wrong site/year combination)
+
 
 def test_by_file_aop_no_data_available_message(capsys, monkeypatch):
     """
@@ -71,7 +82,10 @@ def test_by_file_aop_no_data_available_message(capsys, monkeypatch):
     out, err = capsys.readouterr()
     assert out == 'There are no data available at the selected site and year.\n'
 
-# These next two tests are making API request, so if there is a print statement in get_api for x-ratelimit-remaining,
+### Test collocated and regular sites ###
+# The monkey patch mocks the user input to say "n" (no) to avoid downloading data
+
+# These next two tests make an API request, so if there is a print statement in get_api for x-ratelimit-remaining,
 # it will FAIL without a token. Should mock that part. And/or just test the get_shared_flights function?
 
 
@@ -83,6 +97,9 @@ def test_by_file_aop_no_data_available_message(capsys, monkeypatch):
                              ("2020", "KONA", "KONZ"),
                          ],)
 def test_by_file_aop_collocated_site_message(capsys, monkeypatch, year, site, flightSite):
+    """
+    Test that the by_file_aop() function returns the expected message when a collocated terrestrial site is provided
+    """
     monkeypatch.setattr('builtins.input', lambda _: "n")
     by_file_aop(dpid="DP3.30015.001", site=site, year=year, token=token)
     out, err = capsys.readouterr()
@@ -90,6 +107,9 @@ def test_by_file_aop_collocated_site_message(capsys, monkeypatch, year, site, fl
 
 
 def test_by_file_aop_noncollocated_site_message(capsys, monkeypatch):
+    """
+    Test that the by_file_aop() function returns the expected message when a non-collocated terrestrial site is provided
+    """
     site = "MCRA"
     monkeypatch.setattr('builtins.input', lambda _: "n")
     by_file_aop(dpid="DP3.30015.001", site=site, year="2021", token=token)
@@ -97,7 +117,15 @@ def test_by_file_aop_noncollocated_site_message(capsys, monkeypatch):
     assert out == f'Download halted.\n'
 
 
-def test_by_file_aop_provisional_true_no_data_available_message(capsys, monkeypatch):
+### Test messages for varying scenarios of include_provisional with data unavailable / available for the provided inputs ###
+# Note that these tests would need to change for a given year/data release, as provisional data is subject to change.
+# These tests were written in Mar 2024 so work for the 2024 Release
+
+def test_by_file_aop_all_provisional_no_data_available_message(capsys, monkeypatch):
+    """
+    Test that the by_file_aop() function returns the expected message when include_provisional is set to false (default) but no data are available.
+    This has already run through the check that any data is available (eg. there is data at that site for the year provided)
+    """
     site = "SCBI"
     monkeypatch.setattr('builtins.input', lambda _: "n")
     by_file_aop(dpid="DP3.30015.001", site=site, year="2023", token=token)
@@ -105,7 +133,10 @@ def test_by_file_aop_provisional_true_no_data_available_message(capsys, monkeypa
     assert out == f'No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.\n'
 
 
-def test_by_file_aop_provisional_true_and_data_available_message(capsys, monkeypatch):
+def test_by_file_aop_provisional_included_and_data_available_message(capsys, monkeypatch):
+    """
+    Test that the by_file_aop() function returns the expected message when include_provisional is set to false (default) and data are available.
+    """
     site = "STEI"
     monkeypatch.setattr('builtins.input', lambda _: "n")
     by_file_aop(dpid="DP3.30015.001", site=site, year="2022",
