@@ -57,7 +57,8 @@ To run tests in a single test file:
 pytest ./tests/test_aop_download.py
 ```
 
-To run specific tests based off key words in a test file:
+To run specific tests based off key words in a test file, or in any of the tests:
 ```
-pytest ./tests/test_aop_download.py -k 'test_by_file_aop_invalid or test_by_tile_aop_invalid'
+pytest ./tests/test_aop_download.py -k invalid
+pytest -k by_file_aop
 ```
