@@ -5,9 +5,10 @@ import re
 import json
 import sys
 import os
-from .api_helpers import get_api
-from .api_helpers import get_zip_urls
-from .api_helpers import download_zips
+from .helper_mods.api_helpers import get_api
+from .helper_mods.api_helpers import get_api_headers
+from .helper_mods.api_helpers import get_zip_urls
+from .helper_mods.api_helpers import download_zips
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 

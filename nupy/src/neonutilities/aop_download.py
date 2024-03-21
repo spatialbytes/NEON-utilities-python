@@ -26,7 +26,7 @@ import importlib_resources
 from . import __resources__
 from pathlib import Path
 # from aop_helpers import get_api
-from neonutilities import get_api
+from .helper_mods.api_helpers import get_api
 import numpy as np
 import pandas as pd
 import re
