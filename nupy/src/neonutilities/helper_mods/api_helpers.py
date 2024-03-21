@@ -313,7 +313,7 @@ def get_zip_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include.provisional=TRUE.")
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=TRUE.")
         
     return(zpfiles)
         
