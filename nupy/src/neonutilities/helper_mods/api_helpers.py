@@ -230,7 +230,7 @@ def get_zip_urls(url_set,
                  progress=True):
     """
 
-    Given a set of urls to the data endpoint of the NEON API, returns the set of zip files for each site-month package. Internal function, called by zips_by_product().
+    Given a set of urls to the data endpoint of the NEON API, returns the set of zip file urls for each site-month package. Internal function, called by zips_by_product().
 
     Parameters
     --------
@@ -313,10 +313,133 @@ def get_zip_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=TRUE.")
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
         
     return(zpfiles)
+      
+
+def get_tab_urls(url_set, 
+                 package,
+                 release,
+                 include_provisional,
+                 timeindex,
+                 tabl,
+                 token=None,
+                 progress=True):
+    """
+
+    Given a set of urls to the data endpoint of the NEON API, and averaging interval or table name criteria, returns the set of urls to individual files for each site-month package. Internal function, called by zips_by_product().
+
+    Parameters
+    --------
+    url_set: A list of urls pointing to the data endpoint of the NEON API
+    package: Data download package, basic or expanded.
+    release: Data release to download.
+    include_provisional: Should Provisional data be returned in the download?
+    timeindex: Averaging interval of data to download.
+    tabl: Table name of data to download.
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+    progress: Should the progress bar be displayed?
+
+    Return
+    --------
+    List of urls pointing to files for each product-site-month and subset.
+
+    Created on Mar 23 2024
+
+    @author: Claire Lunch
+    """
+    
+    flnm=[]
+    z=[]
+    sz=[]
+    rel=[]
+    provflag=False
+    if progress:
+        print("Finding available files")
         
+    for i in tqdm(range(0,len(url_set)), disable=not progress):
+        
+        # get list of files from data endpoint
+        m_res=get_api(api_url=url_set[i], token=token)
+        m_di=m_res.json()
+        
+        # only keep queried release
+        if release!="current":
+            if release!=m_di["data"]["release"]:
+                continue
+            
+        # if include_provisional=F, exclude provisional
+        if not include_provisional:
+            if m_di["data"]["release"]=="PROVISIONAL":
+                provflag=True
+                continue
+            
+        # get info for individual files    
+        fls=m_di["data"]["files"]
+        
+        # subset to package. switch to basic if expanded not available
+        # nope. expanded package can contain basic files, need to handle that correctly
+        pr=re.compile(package)
+        flsp=[f for f in m_di["data"]["files"] if pr.search(f["name"])]
+        if package=="expanded" and len(flsp)==0:
+            pr=re.compile("basic")
+            flsp=[f for f in m_di["data"]["files"] if pr.search(f["name"])]
+            
+        # check for no files
+        if len(flsp)==0:
+            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            continue
+            
+        # subset by averaging interval
+        if timeindex!="all":
+            tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min")
+            flst=[fl["url"] for fl in flsp if tt.search(fl["name"])]
+            
+            # check for no files
+            if len(flst)==0:
+                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
+                continue
+        
+        # subset by table
+        if tabl!="all":
+            tb=re.compile("[.]"+tabl+"[.]")
+            flst=[fl["url"] for fl in flsp if tb.search(fl["name"])]
+            
+            # check for no files
+            if len(flst)==0:
+                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
+                continue
+            # STOPPED HERE
+        
+                
+        # get zip file url and file name
+        zi=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        h=get_api_headers(api_url=zi[0], token=token)
+        fltp=re.sub(pattern='"', repl="", 
+                    string=h.headers["content-disposition"])
+        flnmi=re.sub(pattern="inline; filename=", repl="", string=fltp)
+        
+        # get file sizes
+        szr=re.compile(package)
+        flszs=[siz["size"] for siz in m_di["data"]["files"] if szr.search(siz["url"])]
+        flszi=sum(flszs)
+        
+        # return url, file name, file size, and release
+        flnm.append(flnmi)
+        z.append(zi)
+        sz.append(flszi)
+        rel.append(m_di["data"]["release"])
+    
+    z=sum(z, [])
+    zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+        
+    # provisional message
+    if(provflag):
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
+        
+    return(zpfiles)
+
 
 def download_zips(url_set, 
                   outpath,

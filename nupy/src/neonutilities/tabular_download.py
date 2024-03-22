@@ -12,6 +12,7 @@ from .helper_mods.api_helpers import download_zips
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
+                    timeindex="all", tabl="all",
                     include_provisional=False, progress=True,
                     token=None, savepath=None):
     """
@@ -159,12 +160,24 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     if len(end_urls)==0:
         print("There are no data at the selected date(s).")
         return None
-
     
-    # pass to get_zip_urls to query each month for url
-    zipurls=get_zip_urls(url_set=end_urls, package=package, release=release,
-                         include_provisional=include_provisional, token=token,
-                         progress=progress)
+    # can only specify timeindex xor tabl
+    if timeindex!="all" and tabl!="all":
+        print("Only one of timeindex or tabl can be specified, not both.")
+        return None
+    
+    # if downloading entire site-months, pass to get_zip_urls to query each month for url
+    if timeindex=="all" and tabl=="all":
+        durls=get_zip_urls(url_set=end_urls, package=package, release=release,
+                             include_provisional=include_provisional, 
+                             token=token, progress=progress)
+    else:
+        # if downloading by table or averaging interval, pass to get_tab_urls
+        durls=get_tab_urls(url_set=end_urls, package=package, release=release,
+                             include_provisional=include_provisional, 
+                             timeindex=timeindex, tabl=tabl,
+                             token=token, progress=progress)
+            
 
     # add download size check
     
@@ -177,6 +190,6 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         os.makedirs(outpath)
     
     # download data from each url
-    download_zips(url_set=zipurls, outpath=outpath,
+    download_zips(url_set=durls, outpath=outpath,
                   token=token, progress=progress)
     
