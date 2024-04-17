@@ -379,7 +379,8 @@ def get_tab_urls(url_set,
         fls=m_di["data"]["files"]
         
         # subset to package. switch to basic if expanded not available
-        # nope. expanded package can contain basic files, need to handle that correctly
+        # this doesn't work for lab-specific files in OS: package name isn't in file name
+        # also need to get most recent variables and readme files, and most recent sensor positions for each site
         pr=re.compile(package)
         flsp=[f for f in m_di["data"]["files"] if pr.search(f["name"])]
         if package=="expanded" and len(flsp)==0:
@@ -394,37 +395,27 @@ def get_tab_urls(url_set,
         # subset by averaging interval
         if timeindex!="all":
             tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min")
-            flst=[fl["url"] for fl in flsp if tt.search(fl["name"])]
+            flnmi=[fl["name"] for fl in flsp if tt.search(fl["name"])]
+            flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
+            zi=[fl["url"] for fl in flsp if tt.search(fl["name"])]
             
             # check for no files
-            if len(flst)==0:
+            if len(flnmi)==0:
                 print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
                 continue
         
         # subset by table
         if tabl!="all":
             tb=re.compile("[.]"+tabl+"[.]")
-            flst=[fl["url"] for fl in flsp if tb.search(fl["name"])]
+            flnmi=[fl["name"] for fl in flsp if tb.search(fl["name"])]
+            flszi=[fl["size"] for fl in flsp if tb.search(fl["name"])]
+            zi=[fl["url"] for fl in flsp if tb.search(fl["name"])]
             
             # check for no files
-            if len(flst)==0:
+            if len(flnmi)==0:
                 print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
                 continue
-            # STOPPED HERE
-        
                 
-        # get zip file url and file name
-        zi=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
-        h=get_api_headers(api_url=zi[0], token=token)
-        fltp=re.sub(pattern='"', repl="", 
-                    string=h.headers["content-disposition"])
-        flnmi=re.sub(pattern="inline; filename=", repl="", string=fltp)
-        
-        # get file sizes
-        szr=re.compile(package)
-        flszs=[siz["size"] for siz in m_di["data"]["files"] if szr.search(siz["url"])]
-        flszi=sum(flszs)
-        
         # return url, file name, file size, and release
         flnm.append(flnmi)
         z.append(zi)
@@ -432,13 +423,13 @@ def get_tab_urls(url_set,
         rel.append(m_di["data"]["release"])
     
     z=sum(z, [])
-    zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+    tbfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
         
     # provisional message
     if(provflag):
         print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
         
-    return(zpfiles)
+    return(tbfiles)
 
 
 def download_zips(url_set, 

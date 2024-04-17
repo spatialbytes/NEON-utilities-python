@@ -8,6 +8,7 @@ import os
 from .helper_mods.api_helpers import get_api
 from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
+from .helper_mods.api_helpers import get_tab_urls
 from .helper_mods.api_helpers import download_zips
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
