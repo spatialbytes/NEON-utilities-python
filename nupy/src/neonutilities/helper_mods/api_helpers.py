@@ -84,8 +84,7 @@ def get_api(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    print(f"x-ratelimit-remaining: {limit_remain}")
-                    # this is printing the rate limit every time the function is used
+                    # print(f"x-ratelimit-remaining: {limit_remain}") # this prints the rate limit every time the function is used, for troubleshooting
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
@@ -185,8 +184,7 @@ def get_api_headers(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    print(f"x-ratelimit-remaining: {limit_remain}")
-                    # this is printing the rate limit every time the function is used
+                    # print(f"x-ratelimit-remaining: {limit_remain}") # this prints the rate limit every time the function is used, for troubleshooting
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
@@ -313,7 +311,7 @@ def get_zip_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include.provisional=TRUE.")
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=TRUE.")
         
     return(zpfiles)
         

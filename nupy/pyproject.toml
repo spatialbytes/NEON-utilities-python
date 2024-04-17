@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonutilities"
-version = "0.0.6"
+version = "0.0.8"
 authors = [
     {name="Claire Lunch", email="clunch@battelleecology.org"},
     {name="Bridget Hass", email="bhass@battelleecology.org"},
@@ -29,4 +29,4 @@ file = "LICENSE"
 where = ["src"]
 
 [tool.setuptools.package-data]
-neonutilities = ["*.csv"]
+"*" = ["*.*"]

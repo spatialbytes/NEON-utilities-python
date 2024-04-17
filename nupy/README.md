@@ -40,3 +40,25 @@ python -m build --no-isolation
 pip install "C:\Users\bhass\Documents\GitHubRepos\NEON-utilities-python\nupy\dist\neonutilities-0.0.2-py3-none-any.whl" -vvv
 pip show -f neonutilities
 ```
+
+## Testing Instructions / Notes
+- First, build the latest version of the package, and cd to GitHub/NEON-utilities-python/nupy
+- Test functions must start with `test`, eg. `test_by_file_aop...`.
+- For all pytest command line options see: https://docs.pytest.org/en/6.2.x/usage.html
+- This is a relevant example for testing downloads from an API: https://github.com/jtleider/censusdata/blob/master/test/test_download.py
+
+To run all tests in the tests directory: (`-v` is an optional parameter meaning verbose):
+```
+pytest ./tests/ -v
+```
+
+To run tests in a single test file:
+```
+pytest ./tests/test_aop_download.py
+```
+
+To run specific tests based off key words in a test file, or in any of the tests:
+```
+pytest ./tests/test_aop_download.py -k invalid
+pytest -k by_file_aop
+```
