@@ -423,6 +423,8 @@ def get_tab_urls(url_set,
         rel.append(m_di["data"]["release"])
     
     z=sum(z, [])
+    flnm=sum(flnm, [])
+    sz=sum(sz, [])
     tbfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
         
     # provisional message
