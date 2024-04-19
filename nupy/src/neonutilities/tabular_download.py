@@ -60,8 +60,58 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     if not package in ["basic","expanded"]:
         print(f"{package} is not a valid package name. Package must be basic or expanded")
         return None
+    
+    # error messages for products that can't be downloaded by zips_by_product()
+    # AOP products
+    if dpID[4:5:1]==3 and dpID!="DP1.30012.001":
+        print(f"{dpID} is a remote sensing data product. Use the by_file_aop() or by_tile_aop() function.")
+        return None
+
+    # Phenocam products
+    if dpID=="DP1.00033.001" or dpID=="DP1.00042.001":
+        print(f"{dpID} is a phenological image product, data are hosted by Phenocam.")
+        return None
+    
+    # Aeronet product
+    if dpID=="DP1.00043.001":
+        print(f"Spectral sun photometer ({dpID}) data are hosted by Aeronet.")
+        return None
+    
+    # DHP expanded package
+    if dpID=="DP1.10017.001" and package=="expanded":
+        print("Digital hemispherical images expanded file packages exceed programmatic download limits. Either download from the data portal, or download the basic package and use the URLs in the data to download the images themselves. Follow instructions in the Data Product User Guide for image file naming.")
+        return None
+    
+    # individual SAE products
+    if dpID in ['DP1.00007.001','DP1.00010.001','DP1.00034.001','DP1.00035.001',
+                'DP1.00036.001','DP1.00037.001','DP1.00099.001','DP1.00100.001',
+                'DP2.00008.001','DP2.00009.001','DP2.00024.001','DP3.00008.001',
+                'DP3.00009.001','DP3.00010.001','DP4.00002.001','DP4.00007.001',
+                'DP4.00067.001','DP4.00137.001','DP4.00201.001','DP1.00030.001']:
+        print("{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
+        return None
+
+    # redirect for aqu met products and bundles
+    
+
+    # error message if dates aren't formatted correctly
+    # separate logic for each, to easily allow only one to be NA
+    if startdate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=startdate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
         
-    # many more error messages and special handling needed here - see R package
+    if enddate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=enddate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
+        
+    # can only specify timeindex xor tabl
+    if timeindex!="all" and tabl!="all":
+        print("Only one of timeindex or tabl can be specified, not both.")
+        return None
+    # consider adding warning message about using tabl=
+    
     
     # query the /products endpoint for the product requested
     if release=="current" or release=="PROVISIONAL":
@@ -161,11 +211,6 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     # check for no results
     if len(end_urls)==0:
         print("There are no data at the selected date(s).")
-        return None
-    
-    # can only specify timeindex xor tabl
-    if timeindex!="all" and tabl!="all":
-        print("Only one of timeindex or tabl can be specified, not both.")
         return None
     
     # if downloading entire site-months, pass to get_zip_urls to query each month for url
