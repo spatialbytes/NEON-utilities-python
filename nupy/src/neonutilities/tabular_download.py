@@ -9,7 +9,7 @@ from .helper_mods.api_helpers import get_api
 from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
 from .helper_mods.api_helpers import get_tab_urls
-from .helper_mods.api_helpers import download_zips
+from .helper_mods.api_helpers import download_urls
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
@@ -191,6 +191,6 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         os.makedirs(outpath)
     
     # download data from each url
-    download_zips(url_set=durls, outpath=outpath,
+    download_urls(url_set=durls, outpath=outpath,
                   token=token, progress=progress)
     

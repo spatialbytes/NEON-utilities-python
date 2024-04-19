@@ -7,6 +7,7 @@ import time
 import platform
 import importlib.metadata
 from tqdm import tqdm
+from .metadata_helpers import get_recent
 
 # Set global user agent
 vers = importlib.metadata.version('neonutilities')
@@ -350,14 +351,30 @@ def get_tab_urls(url_set,
     @author: Claire Lunch
     """
     
+    # initiate file lists
     flnm=[]
     z=[]
     sz=[]
     rel=[]
+    varf=[]
+    rdme=[]
+    sp=[]
+    
+    # create regular expressions for file finding
+    vr=re.compile("variables")
+    rdr=re.compile("readme")
+    spr=re.compile("sensor_positions")
+    
+    if timeindex!="all":
+        tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min|science_review_flags")
+        
+    if tabl!="all":
+        tb=re.compile("[.]"+tabl+"[.]")
+    
     provflag=False
     if progress:
         print("Finding available files")
-        
+                
     for i in tqdm(range(0,len(url_set)), disable=not progress):
         
         # get list of files from data endpoint
@@ -374,27 +391,32 @@ def get_tab_urls(url_set,
             if m_di["data"]["release"]=="PROVISIONAL":
                 provflag=True
                 continue
-            
-        # get info for individual files    
-        fls=m_di["data"]["files"]
         
         # subset to package. switch to basic if expanded not available
-        # this doesn't work for lab-specific files in OS: package name isn't in file name
-        # also need to get most recent variables and readme files, and most recent sensor positions for each site
+        # package name isn't always in file name (lab files, SRFs) but is always in url
         pr=re.compile(package)
-        flsp=[f for f in m_di["data"]["files"] if pr.search(f["name"])]
+        flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
         if package=="expanded" and len(flsp)==0:
             pr=re.compile("basic")
-            flsp=[f for f in m_di["data"]["files"] if pr.search(f["name"])]
+            flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
             
         # check for no files
         if len(flsp)==0:
             print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
+        
+        # make separate lists of variables, readme and sensor positions
+        varfi=[f for f in m_di["data"]["files"] if vr.search(f["name"])]
+        rdmei=[f for f in m_di["data"]["files"] if rdr.search(f["name"])]
+        spi=[f for f in m_di["data"]["files"] if spr.search(f["name"])]
+        
+        varf.append(varfi)
+        rdme.append(rdmei)
+        if len(spi)>0:
+            sp.append(spi)
             
-        # subset by averaging interval
+        # subset by averaging interval, and include SRF files
         if timeindex!="all":
-            tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min")
             flnmi=[fl["name"] for fl in flsp if tt.search(fl["name"])]
             flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
             zi=[fl["url"] for fl in flsp if tt.search(fl["name"])]
@@ -406,7 +428,6 @@ def get_tab_urls(url_set,
         
         # subset by table
         if tabl!="all":
-            tb=re.compile("[.]"+tabl+"[.]")
             flnmi=[fl["name"] for fl in flsp if tb.search(fl["name"])]
             flszi=[fl["size"] for fl in flsp if tb.search(fl["name"])]
             zi=[fl["url"] for fl in flsp if tb.search(fl["name"])]
@@ -415,12 +436,51 @@ def get_tab_urls(url_set,
             if len(flnmi)==0:
                 print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
                 continue
-                
+                            
         # return url, file name, file size, and release
         flnm.append(flnmi)
         z.append(zi)
         sz.append(flszi)
         rel.append(m_di["data"]["release"])
+    
+    # get most recent metadata files from lists
+    try:
+        varf=sum(varf, [])
+        varfl=get_recent(varf, "variables")
+        flnm.append([fl["name"] for fl in varfl])
+        z.append([fl["url"] for fl in varfl])
+        sz.append([fl["size"]for fl in varfl])
+        #rel.append() # do we need a value here?
+    except:
+        pass
+    
+    try:
+        rdme=sum(rdme, [])
+        rdfl=get_recent(rdme, "readme")
+        flnm.append([fl["name"] for fl in rdfl])
+        z.append([fl["url"] for fl in rdfl])
+        sz.append([fl["size"] for fl in rdfl])
+        #rel.append()
+    except:
+        pass
+    
+    # get most recent sensor positions file for each site
+    if len(sp)>0:
+        sp=sum(sp, [])
+        sr=re.compile("\/[A-Z]{4}\/")
+        sites=[sr.search(f["url"]).group(0) for f in sp]
+        sites=list(set(sites))
+        sites=[re.sub(pattern="\/", repl="", string=s) for s in sites]
+        try:
+            for s in sites:
+                spfl=get_recent(sp, s)
+                flnm.append([fl["name"] for fl in spfl])
+                z.append([fl["url"] for fl in spfl])
+                sz.append([fl["size"] for fl in spfl])
+                #rel.append()
+        except:
+            pass
+
     
     z=sum(z, [])
     flnm=sum(flnm, [])
@@ -434,13 +494,13 @@ def get_tab_urls(url_set,
     return(tbfiles)
 
 
-def download_zips(url_set, 
+def download_urls(url_set, 
                   outpath,
                   token=None,
                   progress=True):
     """
 
-    Given a set of urls to NEON data zip packages, downloads the contents of each. Internal function, called by zips_by_product().
+    Given a set of urls to NEON data packages or files, downloads the contents of each. Internal function, called by zips_by_product().
 
     Parameters
     --------
@@ -451,7 +511,7 @@ def download_zips(url_set,
 
     Return
     --------
-    Zip files in the designated folder
+    Files in the designated folder
 
     Created on Feb 28 2024
 
