@@ -10,10 +10,11 @@ from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
 from .helper_mods.api_helpers import get_tab_urls
 from .helper_mods.api_helpers import download_urls
+from .helper_mods.metadata_helpers import convert_byte_size
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
-                    timeindex="all", tabl="all",
+                    timeindex="all", tabl="all", check_size=True,
                     include_provisional=False, progress=True,
                     token=None, savepath=None):
     """
@@ -46,7 +47,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     Created on Wed Jan 31 14:36:22 2024
 
-    @author: clunch
+    @author: Claire Lunch
     """
 
     # error message if dpID is not formatted correctly
@@ -178,9 +179,15 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                              include_provisional=include_provisional, 
                              timeindex=timeindex, tabl=tabl,
                              token=token, progress=progress)
-            
-
-    # add download size check
+    
+    # check download size
+    download_size=convert_byte_size(sum(durls["sz"]))
+    if check_size:
+        if input(f"Continuing will download {len(durls['z'])} files totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
+            print("Download halted.")
+            return None
+    else:
+        print(f"Downloading {len(durls['z'])} files totaling approximately {download_size}.")
     
     # set up folder to save to
     if savepath is None:

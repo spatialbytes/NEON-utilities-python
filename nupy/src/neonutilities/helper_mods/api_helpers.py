@@ -85,8 +85,8 @@ def get_api(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    print(f"x-ratelimit-remaining: {limit_remain}")
-                    # this is printing the rate limit every time the function is used
+                    #print(f"x-ratelimit-remaining: {limit_remain}")
+                    
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
