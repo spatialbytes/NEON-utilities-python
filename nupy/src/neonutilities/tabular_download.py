@@ -5,12 +5,16 @@ import re
 import json
 import sys
 import os
+import importlib_resources
+import pandas as pd
 from .helper_mods.api_helpers import get_api
 from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
 from .helper_mods.api_helpers import get_tab_urls
 from .helper_mods.api_helpers import download_urls
 from .helper_mods.metadata_helpers import convert_byte_size
+from . import __resources__
+
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
@@ -88,11 +92,37 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                 'DP2.00008.001','DP2.00009.001','DP2.00024.001','DP3.00008.001',
                 'DP3.00009.001','DP3.00010.001','DP4.00002.001','DP4.00007.001',
                 'DP4.00067.001','DP4.00137.001','DP4.00201.001','DP1.00030.001']:
-        print("{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
+        print(f"{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
         return None
 
+    # allow for single sites
+    if not isinstance(site, list):
+        site=[site]
+
     # redirect for aqu met products and bundles
+    shared_aquatic_file=(importlib_resources.files(__resources__)/"shared_aquatic.csv")
+    shared_aquatic_df = pd.read_csv(shared_aquatic_file, index_col="site")
     
+    if site!=["all"]:
+        siter=[]
+        indx=0
+        for s in site:
+            if s in shared_aquatic_df.index:
+                ss=shared_aquatic_df.loc[s]
+                if dpID in list(ss["product"]):
+                    indx=indx+1
+                    sx=list(ss["towerSite"][ss["product"]==dpID])
+                    siter.append(sx)
+                    if indx==1:
+                        print(f"Some sites in your download request are aquatic sites where {dpID} is collected at a nearby terrestrial site. The sites you requested, and the sites that will be accessed instead, are listed below.")
+                    print(f"{s} -> {''.join(sx)}")
+                else:
+                    siter.append([s])
+            else:
+                siter.append([s])
+        siter=sum(siter, [])
+    else:
+        siter=site
 
     # error message if dates aren't formatted correctly
     # separate logic for each, to easily allow only one to be NA
@@ -174,9 +204,9 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     month_urls=sum(month_urls, [])
             
     # subset by site
-    if site!="all":
+    if siter!=["all"]:
         site_urls=[]
-        for si in site:
+        for si in siter:
             se=re.compile(si)
             month_sub=[s for s in month_urls if se.search(s)]
             site_urls.append(month_sub)
