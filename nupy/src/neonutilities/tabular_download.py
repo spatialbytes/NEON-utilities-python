@@ -94,6 +94,31 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                 'DP4.00067.001','DP4.00137.001','DP4.00201.001','DP1.00030.001']:
         print(f"{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
         return None
+    
+    # check for incompatible values of release= and include_provisional=
+    if release=="PROVISIONAL" and not include_provisional:
+        print("Download request is for release=PROVISIONAL. To download PROVISIONAL data, enter input parameter include_provisional=True.")
+        return None
+    if re.search(pattern="RELEASE", string=release)!=None and include_provisional:
+        print(f"Download request is for release={release} but include_provisional=True. Only data in {release} will be downloaded.")
+    
+    # error message if dates aren't formatted correctly
+    # separate logic for each, to easily allow only one to be NA
+    if startdate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=startdate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
+        
+    if enddate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=enddate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
+        
+    # can only specify timeindex xor tabl
+    if timeindex!="all" and tabl!="all":
+        print("Only one of timeindex or tabl can be specified, not both.")
+        return None
+    # consider adding warning message about using tabl=
 
     # allow for single sites
     if not isinstance(site, list):
@@ -123,26 +148,29 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         siter=sum(siter, [])
     else:
         siter=site
+        
+    # redirect for chemistry bundles
+    chem_bundles_file=(importlib_resources.files(__resources__)/"chem_bundles.csv")
+    chem_bundles_df = pd.read_csv(chem_bundles_file)
+    if dpID in list(chem_bundles_df["product"]):
+        newDPID=list(chem_bundles_df["homeProduct"][chem_bundles_df["product"]==dpID])
+        if newDPID==["depends"]:
+            print("Root chemistry and isotopes have been bundled with the root biomass data. For root chemistry from Megapits, download DP1.10066.001. For root chemistry from periodic sampling, download DP1.10067.001.")
+            return None
+        else:
+            print(f"{dpID} has been bundled with {newDPID} and is not available independently. Please download {newDPID}.")
+            return None
 
-    # error message if dates aren't formatted correctly
-    # separate logic for each, to easily allow only one to be NA
-    if startdate!=None:
-        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=startdate)==None:
-            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
-            return None
-        
-    if enddate!=None:
-        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=enddate)==None:
-            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
-            return None
-        
-    # can only specify timeindex xor tabl
-    if timeindex!="all" and tabl!="all":
-        print("Only one of timeindex or tabl can be specified, not both.")
+    # redirect for veg structure and sediment data product bundles
+    other_bundles_file=(importlib_resources.files(__resources__)/"other_bundles.csv")
+    other_bundles_df = pd.read_csv(other_bundles_file)
+    if dpID in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
+        newDPID=list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpID])
+        print(f"Except in RELEASE-2021, {dpID} has been bundled with {newDPID} and is not available independently. Please download {newDPID}.")
         return None
-    # consider adding warning message about using tabl=
     
     
+    # end of error and exception handling, start the work
     # query the /products endpoint for the product requested
     if release=="current" or release=="PROVISIONAL":
         prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
