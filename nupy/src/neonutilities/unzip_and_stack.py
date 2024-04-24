@@ -2,19 +2,21 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pandas as pd
 import zipfile
 import platform
 import glob
 import re
 import tempfile
 import time
+from datetime import datetime
 import shutil
 
 
-zippath = "C:/Users/nickerson/Downloads/NEON_sediment (6).zip"
-outpath = zippath[:-4]
-level = 'all'
-n_cores = 1
+# zippath = "C:/Users/nickerson/Downloads/NEON_sediment (6).zip"
+# outpath = zippath[:-4]
+# level = 'all'
+# n_cores = 1
 
 def unzip_zipfile_parallel(zippath,
                            outpath=zippath[:-4],
@@ -80,10 +82,117 @@ def unzip_zipfile_parallel(zippath,
             zps = outpath
         
         return zps
-       
+
+def find_datatables(folder,
+                    f_names=True):
+    """
+
+    Find data tables
+    
+    Parameters
+    --------
+    folder: The filepath location of the unzipped NEON download package folder.
+    f_names: Full names - if true, then return the full file names including enclosing folders - if false, return only the file names
+    
+    Return
+    --------
+    A data frame of file names
+    
+    Example
+    --------
+    ZN NOTE: Insert example when function is coded
+    
+    >>> example
+    
+    Created on Wed Apr 17 2024
+    
+    @author: Zachary Nickerson
+    """ 
+    
+    # get all .csv files in the folder and its subfolders
+    csv_files = glob.glob(os.path.join(folder, '**', '*.csv'), recursive=True)
+    
+    # if fnames is True, return the full file paths; otherwise, return the base names
+    if f_names:
+        return csv_files
+    else:
+        return [os.path.basename(f) for f in csv_files]
+
+def get_recent_publication(filepaths):
+    """
+
+    Returns the most recent files for those that do not need stacking
+    
+    Parameters
+    --------
+    in_list: List of file paths
+    
+    Return
+    --------
+    The filepath of the file with the most recent publication date
+    
+    Example
+    --------
+    ZN NOTE: Insert example when function is coded
+    
+    >>> example
+    
+    Created on Wed Apr 17 2024
+    
+    @author: Zachary Nickerson
+    """ 
+    
+    # extract the publication dates from the file paths
+    pub_dates = [re.search(r'20\d{2}\d{2}\d{2}', f) for f in filepaths]
+    pub_dates = [m.group(0) for m in pub_dates if m is not None]
+
+    # get the most recent publication date
+    recent_pub_date = max(pub_dates)
+
+    # get the file paths that include the most recent publication date
+    recent_files = [f for f in filepaths if recent_pub_date in f]
+
+    return recent_files
+
+def get_variables(var_path):
+    """
+
+    Get correct data types
+    
+    Parameters
+    --------
+    var_path: A file that contains variable definition
+    
+    Return
+    --------
+    A data frame with fieldName and assigned column class, along with table, if present
+    
+    Example
+    --------
+    ZN NOTE: Insert example when function is coded
+    
+    >>> example
+    
+    Created on Wed Apr 17 2024
+    
+    @author: Zachary Nickerson
+    """    
+    
+    # read the file and get the variables
+    d = pd.read_csv(var_path)
+    d['colClass'] = 'numeric'
+    d.loc[d['dataType'].isin(['string', 'date', 'dateTime', 'uri']), 'colClass'] = 'character'
+    if 'table' in list(d.columns):
+        return(d[['table','fieldName','colClass']])
+    else:
+        return(d[['fieldName','colClass']])
+
+# folder = "C:/Users/nickerson/Downloads/NEON_sediment (6)/NEON_sediment"
+# dpID = "DP1.20194.001"
+
 def stack_data_files_parallel(folder,
-                              n_cores=1,
-                              dpID
+                              dpID,
+                              n_cores=1
                               ):
     """
 
@@ -110,7 +219,111 @@ def stack_data_files_parallel(folder,
     @author: Zachary Nickerson
     """  
     
-    starttime = time.localtime()
+    starttime = datetime.now()
+    messages = []
+    releases = []
+    
+    # Assuming table_types is a pandas DataFrame
+    # dpID needs to be defined
+    table_types=pd.read_csv("C:/Users/nickerson/Documents/GitHub/NEON-utilities-python/nupy/src/neonutilities/__resources__/table_types.csv")
+    ttypes = table_types[table_types['productID'] == dpID]
+    dpnum = dpID[4:9]
+    
+    # Assuming 'folder' is defined
+    # Get filenames without full path
+    filenames = find_datatables(folder = folder,f_names=False)
+    
+    # Get filenames with full path
+    filepaths = find_datatables(folder = folder,f_names=True)
+    
+    # Get release file, if it exists
+    relfl = [i for i in filepaths if "release_status" in i]
+    if len(relfl) == 1:
+        reltab = pd.read_csv(relfl[0], encoding='utf-8')
+    else:
+        reltab = None    
+    
+    # handle per-sample tables separately ## ZN Note: Need to test specifically
+    if dpID in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
+        framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
+        filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
+        filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
+        
+        # stack frame files
+        print("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
+        
+        stacked_files_folder = os.path.join(folder, "stackedFiles")
+        if not os.path.exists(stacked_files_folder):
+            os.makedirs(stacked_files_folder)
+        
+        frm = pd.concat([pd.read_csv(f).assign(fileName=os.path.basename(f)) for f in framefiles], ignore_index=True)
+        
+        if dpID == "DP1.20190.001":
+            frm.to_csv(os.path.join(stacked_files_folder, "rea_conductivityRawData.csv"), index=False)
+        elif dpID == "DP1.20193.001":
+            frm.to_csv(os.path.join(stacked_files_folder, "sbd_conductivityRawData.csv"), index=False)
+        else:
+            frm.to_csv(os.path.join(stacked_files_folder, "per_sample.csv"), index=False)
+    
+    # make a dictionary, where filenames are the keys to the filepath values
+    filelist = dict(zip(filenames, filepaths))
+    
+    datafls = filelist
+    
+    # if there are no datafiles, exit
+    if len(datafls) == 0:
+        print("No data files are present in specified file path.\n")
+        return None
+    
+    # if there is just one data file (and thus one table name), copy file into stackedFiles folder
+    if len(datafls) == 1:
+        stacked_files_folder = os.path.join(folder, "stackedFiles")
+        if not os.path.exists(stacked_files_folder):
+            os.makedirs(stacked_files_folder)
+        shutil.copy(list(datafls.values())[0], stacked_files_folder)
+        m = 0
+        n = 1
+    
+    # if there is more than one file, stack files
+    if len(datafls) > 1:
+        stacked_files_folder = os.path.join(folder, "stackedFiles")
+        
+    # Code for the table type check - Are we including this ## ZN Note
+    
+    n = 0
+    m = 0
+        
+    # metadata files
+    # copy variables and validation files to /stackedFiles using the most recent publication date
+    if any(re.search('variables.20', path) for path in filepaths):
+        varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
+        variables = get_variables(varpath)   # get the variables from the chosen variables file
+        v = pd.read_csv(varpath, sep=',')
+        
+        # if science review flags are present but missing from variables file, add variables
+        if "science_review_flags" not in v['table']:
+            if any("science_review_flags" in path for path in filepaths):
+                v = pd.concat([v, science_review_variables], ignore_index=True)# ZN Note: I do not understand where to get science_review_variables
+        
+        vlist = {k: v for k, v in v.groupby('table')}  
+        
+    if any(re.search('validation', path) for path in filepaths):
+        valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
+        shutil.copy(valpath, f"{folder}/stackedFiles/validation_{dpnum}.csv")
+        messages.append("Copied the most recent publication of validation file to /stackedFiles")
+        m+=1
+
+    # copy categoricalCodes file to /stackedFiles using the most recent publication date
+    if any(re.search('categoricalCodes', path) for path in filepaths):
+        valpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
+        shutil.copy(valpath, f"{folder}/stackedFiles/categoricalCodes_{dpnum}.csv")
+        messages.append("Copied the most recent publication of categoricalCodes file to /stackedFiles")
+        m+=1
+        
+    # find external lab tables (lab-current, lab-all) and stack the most recently published file from each lab
+    ## LEFT OFF HERE ##    
+    
+        
     
 ############################    
     
