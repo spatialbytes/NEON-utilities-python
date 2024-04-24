@@ -158,7 +158,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
             print("Root chemistry and isotopes have been bundled with the root biomass data. For root chemistry from Megapits, download DP1.10066.001. For root chemistry from periodic sampling, download DP1.10067.001.")
             return None
         else:
-            print(f"{dpID} has been bundled with {newDPID} and is not available independently. Please download {newDPID}.")
+            print(f"{''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
             return None
 
     # redirect for veg structure and sediment data product bundles
@@ -166,7 +166,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     other_bundles_df = pd.read_csv(other_bundles_file)
     if dpID in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
         newDPID=list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpID])
-        print(f"Except in RELEASE-2021, {dpID} has been bundled with {newDPID} and is not available independently. Please download {newDPID}.")
+        print(f"Except in RELEASE-2021, {''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
         return None
     
     
