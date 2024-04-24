@@ -11,9 +11,13 @@ src/neonutilities.egg-info/SOURCES.txt
 src/neonutilities.egg-info/dependency_links.txt
 src/neonutilities.egg-info/requires.txt
 src/neonutilities.egg-info/top_level.txt
+src/neonutilities/__resources__/chem_bundles.csv
+src/neonutilities/__resources__/other_bundles.csv
+src/neonutilities/__resources__/shared_aquatic.csv
 src/neonutilities/__resources__/shared_flights.csv
 src/neonutilities/helper_mods/__init__.py
 src/neonutilities/helper_mods/api_helpers.py
+src/neonutilities/helper_mods/metadata_helpers.py
 tests/test_aop_download.py
 tests/test_get_citation.py
 tests/test_zips_by_product.py

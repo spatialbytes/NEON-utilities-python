@@ -5,13 +5,20 @@ import re
 import json
 import sys
 import os
+import importlib_resources
+import pandas as pd
 from .helper_mods.api_helpers import get_api
 from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
-from .helper_mods.api_helpers import download_zips
+from .helper_mods.api_helpers import get_tab_urls
+from .helper_mods.api_helpers import download_urls
+from .helper_mods.metadata_helpers import convert_byte_size
+from . import __resources__
+
 
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
+                    timeindex="all", tabl="all", check_size=True,
                     include_provisional=False, progress=True,
                     token=None, savepath=None):
     """
@@ -44,7 +51,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     Created on Wed Jan 31 14:36:22 2024
 
-    @author: clunch
+    @author: Claire Lunch
     """
 
     # error message if dpID is not formatted correctly
@@ -57,9 +64,113 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     if not package in ["basic","expanded"]:
         print(f"{package} is not a valid package name. Package must be basic or expanded")
         return None
-        
-    # many more error messages and special handling needed here - see R package
     
+    # error messages for products that can't be downloaded by zips_by_product()
+    # AOP products
+    if dpID[4:5:1]==3 and dpID!="DP1.30012.001":
+        print(f"{dpID} is a remote sensing data product. Use the by_file_aop() or by_tile_aop() function.")
+        return None
+
+    # Phenocam products
+    if dpID=="DP1.00033.001" or dpID=="DP1.00042.001":
+        print(f"{dpID} is a phenological image product, data are hosted by Phenocam.")
+        return None
+    
+    # Aeronet product
+    if dpID=="DP1.00043.001":
+        print(f"Spectral sun photometer ({dpID}) data are hosted by Aeronet.")
+        return None
+    
+    # DHP expanded package
+    if dpID=="DP1.10017.001" and package=="expanded":
+        print("Digital hemispherical images expanded file packages exceed programmatic download limits. Either download from the data portal, or download the basic package and use the URLs in the data to download the images themselves. Follow instructions in the Data Product User Guide for image file naming.")
+        return None
+    
+    # individual SAE products
+    if dpID in ['DP1.00007.001','DP1.00010.001','DP1.00034.001','DP1.00035.001',
+                'DP1.00036.001','DP1.00037.001','DP1.00099.001','DP1.00100.001',
+                'DP2.00008.001','DP2.00009.001','DP2.00024.001','DP3.00008.001',
+                'DP3.00009.001','DP3.00010.001','DP4.00002.001','DP4.00007.001',
+                'DP4.00067.001','DP4.00137.001','DP4.00201.001','DP1.00030.001']:
+        print(f"{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
+        return None
+    
+    # check for incompatible values of release= and include_provisional=
+    if release=="PROVISIONAL" and not include_provisional:
+        print("Download request is for release=PROVISIONAL. To download PROVISIONAL data, enter input parameter include_provisional=True.")
+        return None
+    if re.search(pattern="RELEASE", string=release)!=None and include_provisional:
+        print(f"Download request is for release={release} but include_provisional=True. Only data in {release} will be downloaded.")
+    
+    # error message if dates aren't formatted correctly
+    # separate logic for each, to easily allow only one to be NA
+    if startdate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=startdate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
+        
+    if enddate!=None:
+        if re.search(pattern="[0-9]{4}-[0-9]{2}", string=enddate)==None:
+            print("startdate and enddate must be either None or valid dates in the form YYYY-MM")
+            return None
+        
+    # can only specify timeindex xor tabl
+    if timeindex!="all" and tabl!="all":
+        print("Only one of timeindex or tabl can be specified, not both.")
+        return None
+    # consider adding warning message about using tabl=
+
+    # allow for single sites
+    if not isinstance(site, list):
+        site=[site]
+
+    # redirect for aqu met products and bundles
+    shared_aquatic_file=(importlib_resources.files(__resources__)/"shared_aquatic.csv")
+    shared_aquatic_df = pd.read_csv(shared_aquatic_file, index_col="site")
+    
+    if site!=["all"]:
+        siter=[]
+        indx=0
+        for s in site:
+            if s in shared_aquatic_df.index:
+                ss=shared_aquatic_df.loc[s]
+                if dpID in list(ss["product"]):
+                    indx=indx+1
+                    sx=list(ss["towerSite"][ss["product"]==dpID])
+                    siter.append(sx)
+                    if indx==1:
+                        print(f"Some sites in your download request are aquatic sites where {dpID} is collected at a nearby terrestrial site. The sites you requested, and the sites that will be accessed instead, are listed below.")
+                    print(f"{s} -> {''.join(sx)}")
+                else:
+                    siter.append([s])
+            else:
+                siter.append([s])
+        siter=sum(siter, [])
+    else:
+        siter=site
+        
+    # redirect for chemistry bundles
+    chem_bundles_file=(importlib_resources.files(__resources__)/"chem_bundles.csv")
+    chem_bundles_df = pd.read_csv(chem_bundles_file)
+    if dpID in list(chem_bundles_df["product"]):
+        newDPID=list(chem_bundles_df["homeProduct"][chem_bundles_df["product"]==dpID])
+        if newDPID==["depends"]:
+            print("Root chemistry and isotopes have been bundled with the root biomass data. For root chemistry from Megapits, download DP1.10066.001. For root chemistry from periodic sampling, download DP1.10067.001.")
+            return None
+        else:
+            print(f"{''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
+            return None
+
+    # redirect for veg structure and sediment data product bundles
+    other_bundles_file=(importlib_resources.files(__resources__)/"other_bundles.csv")
+    other_bundles_df = pd.read_csv(other_bundles_file)
+    if dpID in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
+        newDPID=list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpID])
+        print(f"Except in RELEASE-2021, {''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
+        return None
+    
+    
+    # end of error and exception handling, start the work
     # query the /products endpoint for the product requested
     if release=="current" or release=="PROVISIONAL":
         prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
@@ -121,9 +232,9 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     month_urls=sum(month_urls, [])
             
     # subset by site
-    if site!="all":
+    if siter!=["all"]:
         site_urls=[]
-        for si in site:
+        for si in siter:
             se=re.compile(si)
             month_sub=[s for s in month_urls if se.search(s)]
             site_urls.append(month_sub)
@@ -159,14 +270,27 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     if len(end_urls)==0:
         print("There are no data at the selected date(s).")
         return None
-
     
-    # pass to get_zip_urls to query each month for url
-    zipurls=get_zip_urls(url_set=end_urls, package=package, release=release,
-                         include_provisional=include_provisional, token=token,
-                         progress=progress)
-
-    # add download size check
+    # if downloading entire site-months, pass to get_zip_urls to query each month for url
+    if timeindex=="all" and tabl=="all":
+        durls=get_zip_urls(url_set=end_urls, package=package, release=release,
+                             include_provisional=include_provisional, 
+                             token=token, progress=progress)
+    else:
+        # if downloading by table or averaging interval, pass to get_tab_urls
+        durls=get_tab_urls(url_set=end_urls, package=package, release=release,
+                             include_provisional=include_provisional, 
+                             timeindex=timeindex, tabl=tabl,
+                             token=token, progress=progress)
+    
+    # check download size
+    download_size=convert_byte_size(sum(durls["sz"]))
+    if check_size:
+        if input(f"Continuing will download {len(durls['z'])} files totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
+            print("Download halted.")
+            return None
+    else:
+        print(f"Downloading {len(durls['z'])} files totaling approximately {download_size}.")
     
     # set up folder to save to
     if savepath is None:
@@ -177,6 +301,6 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         os.makedirs(outpath)
     
     # download data from each url
-    download_zips(url_set=zipurls, outpath=outpath,
+    download_urls(url_set=durls, outpath=outpath,
                   token=token, progress=progress)
     

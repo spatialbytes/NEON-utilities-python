@@ -7,6 +7,7 @@ import time
 import platform
 import importlib.metadata
 from tqdm import tqdm
+from .metadata_helpers import get_recent
 
 # Set global user agent
 vers = importlib.metadata.version('neonutilities')
@@ -84,7 +85,8 @@ def get_api(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    # print(f"x-ratelimit-remaining: {limit_remain}") # this prints the rate limit every time the function is used, for troubleshooting
+                    #print(f"x-ratelimit-remaining: {limit_remain}")
+                    
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
@@ -184,7 +186,10 @@ def get_api_headers(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    # print(f"x-ratelimit-remaining: {limit_remain}") # this prints the rate limit every time the function is used, for troubleshooting
+
+                    #print(f"x-ratelimit-remaining: {limit_remain}")
+                    # this is printing the rate limit every time the function is used
+
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
@@ -228,7 +233,7 @@ def get_zip_urls(url_set,
                  progress=True):
     """
 
-    Given a set of urls to the data endpoint of the NEON API, returns the set of zip files for each site-month package. Internal function, called by zips_by_product().
+    Given a set of urls to the data endpoint of the NEON API, returns the set of zip file urls for each site-month package. Internal function, called by zips_by_product().
 
     Parameters
     --------
@@ -311,18 +316,193 @@ def get_zip_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=TRUE.")
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
         
     return(zpfiles)
-        
+      
 
-def download_zips(url_set, 
+def get_tab_urls(url_set, 
+                 package,
+                 release,
+                 include_provisional,
+                 timeindex,
+                 tabl,
+                 token=None,
+                 progress=True):
+    """
+
+    Given a set of urls to the data endpoint of the NEON API, and averaging interval or table name criteria, returns the set of urls to individual files for each site-month package. Internal function, called by zips_by_product().
+
+    Parameters
+    --------
+    url_set: A list of urls pointing to the data endpoint of the NEON API
+    package: Data download package, basic or expanded.
+    release: Data release to download.
+    include_provisional: Should Provisional data be returned in the download?
+    timeindex: Averaging interval of data to download.
+    tabl: Table name of data to download.
+    token: User specific API token (generated within neon.datascience user accounts). Optional.
+    progress: Should the progress bar be displayed?
+
+    Return
+    --------
+    List of urls pointing to files for each product-site-month and subset.
+
+    Created on Mar 23 2024
+
+    @author: Claire Lunch
+    """
+    
+    # initiate file lists
+    flnm=[]
+    z=[]
+    sz=[]
+    rel=[]
+    varf=[]
+    rdme=[]
+    sp=[]
+    
+    # create regular expressions for file finding
+    vr=re.compile("variables")
+    rdr=re.compile("readme")
+    spr=re.compile("sensor_positions")
+    
+    if timeindex!="all":
+        tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min|science_review_flags")
+        
+    if tabl!="all":
+        tb=re.compile("[.]"+tabl+"[.]")
+    
+    provflag=False
+    if progress:
+        print("Finding available files")
+                
+    for i in tqdm(range(0,len(url_set)), disable=not progress):
+        
+        # get list of files from data endpoint
+        m_res=get_api(api_url=url_set[i], token=token)
+        m_di=m_res.json()
+        
+        # only keep queried release
+        if release!="current":
+            if release!=m_di["data"]["release"]:
+                continue
+            
+        # if include_provisional=F, exclude provisional
+        if not include_provisional:
+            if m_di["data"]["release"]=="PROVISIONAL":
+                provflag=True
+                continue
+        
+        # subset to package. switch to basic if expanded not available
+        # package name isn't always in file name (lab files, SRFs) but is always in url
+        pr=re.compile(package)
+        flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
+        if package=="expanded" and len(flsp)==0:
+            pr=re.compile("basic")
+            flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
+            
+        # check for no files
+        if len(flsp)==0:
+            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            continue
+        
+        # make separate lists of variables, readme and sensor positions
+        varfi=[f for f in m_di["data"]["files"] if vr.search(f["name"])]
+        rdmei=[f for f in m_di["data"]["files"] if rdr.search(f["name"])]
+        spi=[f for f in m_di["data"]["files"] if spr.search(f["name"])]
+        
+        varf.append(varfi)
+        rdme.append(rdmei)
+        if len(spi)>0:
+            sp.append(spi)
+            
+        # subset by averaging interval, and include SRF files
+        if timeindex!="all":
+            flnmi=[fl["name"] for fl in flsp if tt.search(fl["name"])]
+            flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
+            zi=[fl["url"] for fl in flsp if tt.search(fl["name"])]
+            
+            # check for no files
+            if len(flnmi)==0:
+                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
+                continue
+        
+        # subset by table
+        if tabl!="all":
+            flnmi=[fl["name"] for fl in flsp if tb.search(fl["name"])]
+            flszi=[fl["size"] for fl in flsp if tb.search(fl["name"])]
+            zi=[fl["url"] for fl in flsp if tb.search(fl["name"])]
+            
+            # check for no files
+            if len(flnmi)==0:
+                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
+                continue
+                            
+        # return url, file name, file size, and release
+        flnm.append(flnmi)
+        z.append(zi)
+        sz.append(flszi)
+        rel.append(m_di["data"]["release"])
+    
+    # get most recent metadata files from lists
+    try:
+        varf=sum(varf, [])
+        varfl=get_recent(varf, "variables")
+        flnm.append([fl["name"] for fl in varfl])
+        z.append([fl["url"] for fl in varfl])
+        sz.append([fl["size"]for fl in varfl])
+        #rel.append() # do we need a value here?
+    except:
+        pass
+    
+    try:
+        rdme=sum(rdme, [])
+        rdfl=get_recent(rdme, "readme")
+        flnm.append([fl["name"] for fl in rdfl])
+        z.append([fl["url"] for fl in rdfl])
+        sz.append([fl["size"] for fl in rdfl])
+        #rel.append()
+    except:
+        pass
+    
+    # get most recent sensor positions file for each site
+    if len(sp)>0:
+        sp=sum(sp, [])
+        sr=re.compile("\/[A-Z]{4}\/")
+        sites=[sr.search(f["url"]).group(0) for f in sp]
+        sites=list(set(sites))
+        sites=[re.sub(pattern="\/", repl="", string=s) for s in sites]
+        try:
+            for s in sites:
+                spfl=get_recent(sp, s)
+                flnm.append([fl["name"] for fl in spfl])
+                z.append([fl["url"] for fl in spfl])
+                sz.append([fl["size"] for fl in spfl])
+                #rel.append()
+        except:
+            pass
+
+    
+    z=sum(z, [])
+    flnm=sum(flnm, [])
+    sz=sum(sz, [])
+    tbfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+        
+    # provisional message
+    if(provflag):
+        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
+        
+    return(tbfiles)
+
+
+def download_urls(url_set, 
                   outpath,
                   token=None,
                   progress=True):
     """
 
-    Given a set of urls to NEON data zip packages, downloads the contents of each. Internal function, called by zips_by_product().
+    Given a set of urls to NEON data packages or files, downloads the contents of each. Internal function, called by zips_by_product().
 
     Parameters
     --------
@@ -333,7 +513,7 @@ def download_zips(url_set,
 
     Return
     --------
-    Zip files in the designated folder
+    Files in the designated folder
 
     Created on Feb 28 2024
 
