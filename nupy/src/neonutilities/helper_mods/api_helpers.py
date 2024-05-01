@@ -6,8 +6,10 @@ import re
 import time
 import platform
 import importlib.metadata
+import logging
 from tqdm import tqdm
 from .metadata_helpers import get_recent
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 # Set global user agent
 vers = importlib.metadata.version('neonutilities')
@@ -52,12 +54,10 @@ def get_api(api_url,
         if check_connection.status_code != 200:
             status_code = check_connection.status_code
             status_code_meaning = get_status_code_meaning(status_code)
-            print(
+            raise ConnectionError(
                 f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
-            return None
     except:  # ConnectionError as e
-        print("No internet connection detected. Cannot access NEON API.\n")
-        return None
+        raise ConnectionError("No internet connection detected. Cannot access NEON API.\n")
 
     # Make 5 request attempts. If the rate limit is reached, pause for the
     # burst reset time to try again.
@@ -90,7 +90,7 @@ def get_api(api_url,
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
-                        print(
+                        logging.info(
                             f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
                         time.sleep(int(time_reset))
                         # Increment loop to retry request attempt
@@ -110,16 +110,14 @@ def get_api(api_url,
                 # Print the status code and it's meaning
                 status_code_meaning = get_status_code_meaning(
                     response.status_code)
-                print(
+                raise ConnectionError(
                     f"Request failed with status code {response.status_code}, indicating '{status_code_meaning}'\n")
-                return None
 
             return response
 
         except:
-            print(
+            raise ConnectionError(
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
-            return None
 
 
 def get_api_headers(api_url,
@@ -153,12 +151,10 @@ def get_api_headers(api_url,
         if check_connection.status_code != 200:
             status_code = check_connection.status_code
             status_code_meaning = get_status_code_meaning(status_code)
-            print(
+            raise ConnectionError(
                 f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
-            return None
     except:  # ConnectionError as e
-        print("No internet connection detected. Cannot access NEON API.\n")
-        return None
+        raise ConnectionError("No internet connection detected. Cannot access NEON API.\n")
 
     # Make 5 request attempts. If the rate limit is reached, pause for the
     # burst reset time to try again.
@@ -193,7 +189,7 @@ def get_api_headers(api_url,
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
-                        print(
+                        logging.info(
                             f"Rate limit reached. Pausing for {time_reset} seconds to reset.\n")
                         time.sleep(int(time_reset))
                         # Increment loop to retry request attempt
@@ -213,16 +209,14 @@ def get_api_headers(api_url,
                 # Print the status code and it's meaning
                 status_code_meaning = get_status_code_meaning(
                     response.status_code)
-                print(
+                raise ConnectionError(
                     f"Request failed with status code {response.status_code}, indicating '{status_code_meaning}'\n")
-                return None
 
             return response
 
         except:
-            print(
+            raise ConnectionError(
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
-            return None
 
 
 def get_zip_urls(url_set, 
@@ -259,7 +253,7 @@ def get_zip_urls(url_set,
     rel=[]
     provflag=False
     if progress:
-        print("Finding available files")
+        logging.info("Finding available files")
         
     for i in tqdm(range(0,len(url_set)), disable=not progress):
         
@@ -280,17 +274,17 @@ def get_zip_urls(url_set,
             
         # check for no files
         if not "packages" in list(m_di["data"]):
-            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
             
         if len(m_di["data"]["packages"])==0:
-            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
         
         # if package=expanded, check for expanded. reassign to basic if not found.
         if package=="expanded":
             if not package in [p["type"] for p in m_di["data"]["packages"]]:
-                print(f"No expanded package found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}. Basic package downloaded instead.")
+                logging.info(f"No expanded package found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}. Basic package downloaded instead.")
                 package="basic"
                 
         # get zip file url and file name
@@ -316,7 +310,7 @@ def get_zip_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
+        logging.info("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
         
     return(zpfiles)
       
@@ -375,7 +369,7 @@ def get_tab_urls(url_set,
     
     provflag=False
     if progress:
-        print("Finding available files")
+        logging.info("Finding available files")
                 
     for i in tqdm(range(0,len(url_set)), disable=not progress):
         
@@ -404,7 +398,7 @@ def get_tab_urls(url_set,
             
         # check for no files
         if len(flsp)==0:
-            print(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
+            logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
         
         # make separate lists of variables, readme and sensor positions
@@ -425,7 +419,7 @@ def get_tab_urls(url_set,
             
             # check for no files
             if len(flnmi)==0:
-                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
+                logging.info(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
                 continue
         
         # subset by table
@@ -436,7 +430,7 @@ def get_tab_urls(url_set,
             
             # check for no files
             if len(flnmi)==0:
-                print(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
+                logging.info(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
                 continue
                             
         # return url, file name, file size, and release
@@ -491,7 +485,7 @@ def get_tab_urls(url_set,
         
     # provisional message
     if(provflag):
-        print("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
+        logging.info("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
         
     return(tbfiles)
 
@@ -521,7 +515,7 @@ def download_urls(url_set,
     """
     
     if progress:
-        print("Downloading files")
+        logging.info("Downloading files")
         
     for i in tqdm(range(0,len(url_set["z"])), disable=not progress):
 
@@ -541,7 +535,6 @@ def download_urls(url_set,
                     out_file.write(content)
 
         except:
-            print(f"File {url_set['flnm'][i]} could not be downloaded. Try increasing the timeout limit.")
-            return None
+            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded. Try increasing the timeout limit.")
         
     return None

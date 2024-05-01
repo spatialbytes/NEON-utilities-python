@@ -4,6 +4,7 @@ pyproject.toml
 src/neonutilities/__init__.py
 src/neonutilities/aop_download.py
 src/neonutilities/citation.py
+src/neonutilities/get_issue_log.py
 src/neonutilities/read_table_neon.py
 src/neonutilities/tabular_download.py
 src/neonutilities.egg-info/PKG-INFO
@@ -20,4 +21,5 @@ src/neonutilities/helper_mods/api_helpers.py
 src/neonutilities/helper_mods/metadata_helpers.py
 tests/test_aop_download.py
 tests/test_get_citation.py
+tests/test_get_issue_log.py
 tests/test_zips_by_product.py
