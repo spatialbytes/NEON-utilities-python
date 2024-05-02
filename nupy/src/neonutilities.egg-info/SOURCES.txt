@@ -7,6 +7,7 @@ src/neonutilities/citation.py
 src/neonutilities/get_issue_log.py
 src/neonutilities/read_table_neon.py
 src/neonutilities/tabular_download.py
+src/neonutilities/unzip_and_stack.py
 src/neonutilities.egg-info/PKG-INFO
 src/neonutilities.egg-info/SOURCES.txt
 src/neonutilities.egg-info/dependency_links.txt
@@ -16,6 +17,7 @@ src/neonutilities/__resources__/chem_bundles.csv
 src/neonutilities/__resources__/other_bundles.csv
 src/neonutilities/__resources__/shared_aquatic.csv
 src/neonutilities/__resources__/shared_flights.csv
+src/neonutilities/__resources__/table_types.csv
 src/neonutilities/helper_mods/__init__.py
 src/neonutilities/helper_mods/api_helpers.py
 src/neonutilities/helper_mods/metadata_helpers.py
