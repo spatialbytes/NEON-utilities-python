@@ -7,11 +7,11 @@ import zipfile
 import platform
 import glob
 import re
-import tempfile
 import time
 from datetime import datetime
 import shutil
-
+import logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 # zippath = "C:/Users/nickerson/Downloads/NEON_sediment (6).zip"
 # outpath = zippath[:-4]
@@ -67,10 +67,7 @@ def unzip_zipfile_parallel(zippath,
         if any(len(x) > 260 for x in tl) and platform.system() == "Windows":
             print('Longest filepath is ' + str(len(max(tl, key=len))) + ' characters long. Filepaths on Windows are limited to 260 characters. Move files closer to the root directory.')
             return None
-        if any(len(x) > 255 for x in tl) and platform.system() == "Darwin":
-            print('Longest filepath is ' + str(len(max(tl, key=len))) + ' characters long. Filepaths on Mac are limited to 255 characters. Move files closer to the root directory.')
-            return None
-        
+               
         # Unzip file and get list of zips within
         zip_ref.extractall(outpath)
         zps = glob.glob(outpath+"/*.zip")
@@ -190,6 +187,49 @@ def get_variables(var_path):
 # folder = "C:/Users/nickerson/Downloads/NEON_sediment (6)/NEON_sediment"
 # dpID = "DP1.20194.001"
 
+def find_table_types(datatables):
+    """
+
+    Find unique data tables and their types
+    
+    Parameters
+    --------
+    datatables: A list of data files
+    
+    Return
+    --------
+    An array of unique table names and their types
+        
+    Created on 3 May 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    dt=[os.path.basename(d) for d in datatables]
+    splitnames=[d.split(".") for d in dt]
+    td=[]
+    for i in range(0, len(splitnames)):
+        for j in range(2, len(splitnames[i])):
+            s=splitnames[i][j]
+            if not s=="sensor_positions" and not s=="science_review_flags":
+                if not "_" in s:
+                    continue
+                else:
+                    ss=str.replace(s, "_pub", "")
+                    td.append(ss)
+                    
+    if len(td)==0:
+        raise TypeError("No data tables found, only metadata. Try downloading expanded package, and check availability on the NEON data portal.")
+    else:
+        tn=list(set(td))
+        
+    tt=dict()
+    for k in range(0, len(tn)):
+        tnk=tn[k]
+        tnkr=re.compile(tnk+"|"+tnk+"_pub")
+        tnknames=[trnn for trnn in splitnames for tr in trnn if tnkr.search(tr)]
+    # stopped here, incomplete
+
 def stack_data_files_parallel(folder,
                               dpID,
                               n_cores=1
@@ -201,7 +241,7 @@ def stack_data_files_parallel(folder,
     Parameters
     --------
     folder: The filepath location of the unzipped NEON download package folder.
-    dpID: Data product ID of product to stack. Ignored and determined from data unless input is a vector of files.
+    dpID: Data product ID of product to stack.
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     
     Return
@@ -223,10 +263,6 @@ def stack_data_files_parallel(folder,
     messages = []
     releases = []
     
-    # Assuming table_types is a pandas DataFrame
-    # dpID needs to be defined
-    table_types=pd.read_csv("C:/Users/nickerson/Documents/GitHub/NEON-utilities-python/nupy/src/neonutilities/__resources__/table_types.csv")
-    ttypes = table_types[table_types['productID'] == dpID]
     dpnum = dpID[4:9]
     
     # Assuming 'folder' is defined
@@ -329,19 +365,10 @@ def stack_data_files_parallel(folder,
     
 ############################
 
-# filepath=zps
-filepath=zippath
-savepath=None
-save_unzipped_files=False
-dpID=None
-package=None 
-n_cores=1
 
 def stack_by_table(filepath,
                    savepath=None, 
                    save_unzipped_files=False, 
-                   dpID=None, 
-                   package=None, 
                    n_cores=1,
                    #useFasttime=False # Is there an equivalent in python?
                    ):
@@ -354,8 +381,6 @@ def stack_by_table(filepath,
     filepath: The location of the zip file.
     savepath: The location to save the output files to. (optional)
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
-    dpID: Data product ID of product to stack. Ignored and determined from data unless input is a vector of files. (optional)
-    package: Data download package, either basic or expanded. Ignored and determined from data unless input is a vector of files. (optional)
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     
     Return
@@ -373,15 +398,12 @@ def stack_by_table(filepath,
     @author: Zachary Nickerson
     """  
     
-    # Is the filepath input a list, a zip file, or an upzipped file?
-    if type(filepath) == list:
-        folder = 'ls'
-        save_unzipped_files = False
+    # determine contents of filepath and unzip as needed
+    # Is the filepath input a zip file or an unzipped file?
+    if filepath[-4:] in ['.zip','.ZIP']:
+        folder = False
     else:
-        if filepath[-4:] in ['.zip','.ZIP']:
-            folder = False
-        else:
-            folder = True
+        folder = True
     
     # Check whether data should be stacked
     if not folder:
@@ -392,69 +414,52 @@ def stack_by_table(filepath,
         
     # Error handling if there are no standardized NEON Portal data tables in the list of files
     if not any(re.search(r'NEON.D[0-9]{2}.[A-Z]{4}.',x) for x in files):
-        print('Data files are not present in the specified filepath.\n')
+        logging.info('Data files are not present in the specified filepath.')
         return
     
-    # If the input is a list of files
-    if folder == 'ls':
-        if dpID is None:
-            print('dpID must be provided when input is not a single filepath.\n')
-            return None
-        if package is None:
-            print('package (basic or expanded) must be provided when input is not a single filepath.\n')
-            return None
-        files = filepath
-        if len(files) == 0:
-            print('Data files are not present in the specified filepath.\n')
-            return None
-        if not any(os.path.isfile(x) for x in files):
-            print("Files not found in specified filepaths. Check that the input list contains the full filepaths.\n")
-            return None
-    # If the files are in a folder or zipfile
+    # Determine dpID
+    # this regexpr allows for REV = .001 or .002
+    dpID_listlist = []
+    for f in range(len(files)):
+        dpID_listlist.append(re.findall(re.compile("DP[1-4][.][0-9]{5}[.]00[1-2]{1}"),files[f]))
+    dpID = [x for dpID_list in dpID_listlist for x in dpID_list]
+    dpID = list(set(dpID))
+    if not len(dpID) == 1:
+        logging.info("Data product ID could not be determined. Check that filepath contains data files, from a single NEON data product.")
+        return
     else:
-        # Determine dpID
-        # this regexpr allows for REV = .001 or .002
-        dpID_listlist = []
-        for f in range(len(files)):
-            dpID_listlist.append(re.findall(re.compile("DP[1-4][.][0-9]{5}[.]00[1-2]{1}"),files[f]))
-        dpID = [x for dpID_list in dpID_listlist for x in dpID_list]
-        dpID = list(set(dpID))
-        if not len(dpID) == 1:
-            print("Data product ID could not be determined. Check that filepath contains data files, from a single NEON data product.\n")
-            return None
-        else:
-            dpID = dpID[0]
-        # Determine download package
-        package_listlist = []
-        for f in range(len(files)):
-            package_listlist.append(re.findall(re.compile("basic|expanded"),files[f]))
-        package = [x for package_list in package_listlist for x in package_list]
-        package = list(set(package))
-        if 'expanded' in package:
-            package = 'expanded'
-        else:
-            package = 'basic'
+        dpID = dpID[0]
+    # Determine download package
+    package_listlist = []
+    for f in range(len(files)):
+        package_listlist.append(re.findall(re.compile("basic|expanded"),files[f]))
+    package = [x for package_list in package_listlist for x in package_list]
+    package = list(set(package))
+    if 'expanded' in package:
+        package = 'expanded'
+    else:
+        package = 'basic'
             
     # Error message for AOP data
     if dpID[4] == '3' and not dpID == 'DP1.30012.001':
-        print("This is an AOP data product, files cannot be stacked. Use by_file_aop() or by_tile_aop() if you would like to download data.\n")
+        logging.info("This is an AOP data product, files cannot be stacked. Use by_file_aop() or by_tile_aop() to download data.")
+        return
         
-    # # Error messafe for SAE data
-    # if dpID == 'DP4.00200.001':
-    #     print("This eddy covariance data product is in HDF5 format. Stack using stack_eddy()")
-    
-    # Code for using fasttime?
-    
+    # Error messafe for SAE data
+    if dpID == 'DP4.00200.001':
+        logging.info("This eddy covariance data product is in HDF5 format. Stack using stack_eddy()")
+        return
+        
     # Exceptions for digital hemispheric photos
     if dpID == 'DP1.10017.001' and package == 'expanded':
         save_unzipped_files = True
-        print("Note: Digital hemispheric photos (in NEF format) cannot be stacked; only the CSV metadata files will be stacked.\n")
+        logging.info("Note: Digital hemispheric photos (in NEF format) cannot be stacked; only the CSV metadata files will be stacked.")
         
     # Warning about all sensor soil data
     if dpID in ['DP1.00094.001','DP1.00041.001'] and len(files) > 24:
-        print("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks, using the nCores= parameter to parallelize stacking, and/or using a high-performance system.")
+        logging.info("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks, using the nCores= parameter to parallelize stacking, and/or using a high-performance system.")
     
-    # If all checks pass, stack files
+    # If all checks pass, unzip and stack files
     
     # If the filepath is a zip file
     envt = 0
@@ -462,7 +467,7 @@ def stack_by_table(filepath,
         if savepath is None:
             savepath = filepath[:-4]
         if savepath == "envt":
-            savepath = os.path.join(tempfile.gettempdir(), "store" + time.strftime("%Y%m%d%H%M%S"))
+            savepath = os.path.join(os.getcwd(), "store" + time.strftime("%Y%m%d%H%M%S"))
             envt = 1
         if re.search(".zip", files):
             ziplist = unzip_zipfile_parallel(zippath = filepath, outpath = savepath)
@@ -482,7 +487,7 @@ def stack_by_table(filepath,
         if savepath is None:
             savepath = filepath
         if savepath == "envt":
-            savepath = os.path.join(tempfile.gettempdir(), "store" + time.strftime("%Y%m%d%H%M%S"))
+            savepath = os.path.join(os.getcwd(), "store" + time.strftime("%Y%m%d%H%M%S"))
             envt = 1
         ziplist = files
         if any(".zip" in file for file in files):
@@ -494,28 +499,6 @@ def stack_by_table(filepath,
                 for i in files:
                     shutil.copy(os.path.join(filepath, i), savepath)
                     
-    if folder == "ls":
-        if savepath == "envt":
-            envt = 1
-        if savepath is None or savepath == "envt":
-            finalpath = os.path.dirname(files[0])
-        else:
-            finalpath = savepath
-        if not os.path.exists(finalpath):
-            os.makedirs(finalpath)
-        
-        if all(".zip" in file for file in files):
-            fols = [unzip(file, os.path.join(finalpath, os.path.basename(file)[:-4])) for file in files]
-            files = [os.path.basename(fol)[:-4] for fol in fols]
-        else:
-            if sum(".zip" in file for file in files) > len(files) / 5:
-                print("There are a large number of zip files in the input list.\nFiles are only unzipped if all input files are zip files.\n")
-        if any(".zip" in file for file in files):
-            files = [file for file in files if ".zip" not in file]
-        savepath = os.path.join(tempfile.gettempdir(), "store" + time.strftime("%Y%m%d%H%M%S"))
-        os.makedirs(savepath, exist_ok=True)
-        for i in files:
-            shutil.copy(i, savepath)
 
         
         
