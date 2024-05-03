@@ -200,7 +200,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     # check that token was used
     if 'x-ratelimit-limit' in prodreq.headers and not token==None:
         if prodreq.headers.get('x-ratelimit-limit')==200:
-            logging.info("API token was not recognized. Public rate limit applied.\n")
+            logging.info("API token was not recognized. Public rate limit applied.")
     
     # get data urls
     month_urls=[]
