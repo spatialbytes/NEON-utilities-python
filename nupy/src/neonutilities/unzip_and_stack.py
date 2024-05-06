@@ -8,10 +8,13 @@ import platform
 import glob
 import re
 import time
+import importlib_resources
 from datetime import datetime
 import shutil
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
+
+from . import __resources__
 
 # zippath = "C:/Users/nickerson/Downloads/NEON_sediment (6).zip"
 # outpath = zippath[:-4]
@@ -248,7 +251,8 @@ def find_table_types(datatables):
                     td.append(ss)
                     
     if len(td)==0:
-        raise TypeError("No data tables found, only metadata. Try downloading expanded package, and check availability on the NEON data portal.")
+        logging.info("No data tables found, only metadata. Try downloading expanded package, and check availability on the NEON data portal.")
+        return
     else:
         tn=list(set(td))
         
@@ -362,7 +366,9 @@ def stack_data_files_parallel(folder,
     if len(datafls) > 1:
         stacked_files_folder = os.path.join(folder, "stackedFiles")
         
-    # Code for the table type check - Are we including this ## ZN Note
+    # get table types
+    table_types=find_table_types(filenames)
+    tables=list(table_types.keys())
     
     n = 0
     m = 0
@@ -377,7 +383,9 @@ def stack_data_files_parallel(folder,
         # if science review flags are present but missing from variables file, add variables
         if "science_review_flags" not in v['table']:
             if any("science_review_flags" in path for path in filepaths):
-                v = pd.concat([v, science_review_variables], ignore_index=True)# ZN Note: I do not understand where to get science_review_variables
+                science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
+                science_review_variables=pd.read_csv(science_review_file, index_col=None)
+                v = pd.concat([v, science_review_variables], ignore_index=True)
         
         vlist = {k: v for k, v in v.groupby('table')}  
         
