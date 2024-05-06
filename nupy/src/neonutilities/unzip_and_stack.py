@@ -187,6 +187,35 @@ def get_variables(var_path):
 # folder = "C:/Users/nickerson/Downloads/NEON_sediment (6)/NEON_sediment"
 # dpID = "DP1.20194.001"
 
+def table_type_formats(flname):
+    """
+
+    Small helper function to define mapping of table types to file name formats
+    
+    Parameters
+    --------
+    flname: A file name, split into components
+    
+    Return
+    --------
+    A table type
+        
+    Created on 6 May 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    flen=len(flname)
+    if flen==5:
+        return "lab"
+    else:
+        ymr=re.compile("[0-9]{4}-[0-9]{2}")
+        if any([f for f in flname if ymr.search(f)]):
+            return "site-date"
+        else:
+            return "site-all"
+
+
 def find_table_types(datatables):
     """
 
@@ -223,12 +252,21 @@ def find_table_types(datatables):
     else:
         tn=list(set(td))
         
-    tt=dict()
+    tt={}
     for k in range(0, len(tn)):
         tnk=tn[k]
         tnkr=re.compile(tnk+"|"+tnk+"_pub")
         tnknames=[trnn for trnn in splitnames for tr in trnn if tnkr.search(tr)]
-    # stopped here, incomplete
+        ttklist=list(map(table_type_formats, tnknames))
+        ttk=list(set(ttklist))
+        if len(ttk)>1:
+            raise ValueError("In files to be stacked, table {tnk} has been published under conflicting schedules. To avoid this problem, either work only with released data, or stack released and provisional data separately.")
+            return
+        else:
+            tt[tnk]=ttk[0]
+            
+    return tt
+    
 
 def stack_data_files_parallel(folder,
                               dpID,
