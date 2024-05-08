@@ -191,8 +191,10 @@ def get_variables(v):
             typ=pa.float32()
         if v.dataType[i] in ["integer", "unsigned integer", "signed integer"]:
             typ=pa.int32()
-        if v.dataType[i] in ["string", "uri", "dateTime"]: # NEEDS FIX: haven't yet figured out pyarrow dates
-            typ=pa.string()
+        if v.dataType[i] in ["string", "uri"]:
+            typ = pa.string()
+        if v.dataType[i] == "dateTime":
+            typ = pa.timestamp("s", tz="UTC")
         if i==0:
             vschema=pa.schema([(nm, typ)])
         else:
@@ -418,7 +420,7 @@ def stack_data_files_parallel(folder,
     ## LEFT OFF HERE ##    
     
     #### skipping other cases for now, jumping to site-date
-    for j in tables: # assumes tables object has been filtered down
+    for j in tables: # assumes tables object has been filtered down to only site-date
     
         # create schema from variables file, for only this table and package
         arrowvars = dataset.dataset(source=varpath, format="csv")
