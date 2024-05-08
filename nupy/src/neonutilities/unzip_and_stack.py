@@ -3,6 +3,8 @@
 
 import os
 import pandas as pd
+import pyarrow as pa
+from pyarrow import dataset
 import zipfile
 import platform
 import glob
@@ -154,7 +156,7 @@ def get_recent_publication(filepaths):
 
     return recent_files
 
-def get_variables(var_path):
+def get_variables(v):
     """
 
     Get correct data types
@@ -165,7 +167,7 @@ def get_variables(var_path):
     
     Return
     --------
-    A data frame with fieldName and assigned column class, along with table, if present
+    A pyarrow schema for data types based on the variables file
     
     Example
     --------
@@ -178,17 +180,27 @@ def get_variables(var_path):
     @author: Zachary Nickerson
     """    
     
-    # read the file and get the variables
-    d = pd.read_csv(var_path)
-    d['colClass'] = 'numeric'
-    d.loc[d['dataType'].isin(['string', 'date', 'dateTime', 'uri']), 'colClass'] = 'character'
-    if 'table' in list(d.columns):
-        return(d[['table','fieldName','colClass']])
-    else:
-        return(d[['fieldName','colClass']])
+    # function assumes variables are loaded as a pandas data frame.
+    # would be best to move away from pandas
+        
+    # create pyarrow schema by translating NEON data types to pyarrow types
+    # should probably do this with a dictionary instead of if statements
+    for i in range(0, len(v)):
+        nm = v.fieldName[i]
+        if v.dataType[i]=="real":
+            typ=pa.float32()
+        if v.dataType[i] in ["integer", "unsigned integer", "signed integer"]:
+            typ=pa.int32()
+        if v.dataType[i] in ["string", "uri", "dateTime"]: # NEEDS FIX: haven't yet figured out pyarrow dates
+            typ=pa.string()
+        if i==0:
+            vschema=pa.schema([(nm, typ)])
+        else:
+            nfield=pa.field(nm, typ)
+            vschema=vschema.append(nfield)
+        
+    return vschema
 
-# folder = "C:/Users/nickerson/Downloads/NEON_sediment (6)/NEON_sediment"
-# dpID = "DP1.20194.001"
 
 def table_type_formats(flname):
     """
@@ -273,6 +285,7 @@ def find_table_types(datatables):
     
 
 def stack_data_files_parallel(folder,
+                              package,
                               dpID,
                               n_cores=1
                               ):
@@ -377,7 +390,6 @@ def stack_data_files_parallel(folder,
     # copy variables and validation files to /stackedFiles using the most recent publication date
     if any(re.search('variables.20', path) for path in filepaths):
         varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
-        variables = get_variables(varpath)   # get the variables from the chosen variables file
         v = pd.read_csv(varpath, sep=',')
         
         # if science review flags are present but missing from variables file, add variables
@@ -405,7 +417,36 @@ def stack_data_files_parallel(folder,
     # find external lab tables (lab-current, lab-all) and stack the most recently published file from each lab
     ## LEFT OFF HERE ##    
     
+    #### skipping other cases for now, jumping to site-date
+    for j in tables: # assumes tables object has been filtered down
+    
+        # create schema from variables file, for only this table and package
+        arrowvars = dataset.dataset(source=varpath, format="csv")
+        arrowv = arrowvars.to_table()
+        vtab = arrowv.filter(pa.compute.field("table") == j)
         
+        if package=="basic":
+            vtabpkg = vtab.filter(pa.compute.field("downloadPkg") == "basic")
+        else:
+            vtabpkg = vtab
+        
+        tablepkgvar = vtabpkg.to_pandas()
+        tableschema = get_variables(tablepkgvar)
+        
+        # subset the list of files
+        tabler = re.compile("[.]"+j+"[.]|[.]"+j+"_pub[.]")
+        tablepaths = [f for f in filepaths if tabler.search(f)]
+        
+        # read data and append file names
+        dat = dataset.dataset(source=tablepaths,
+                            format="csv", schema=tableschema)
+        cols = tableschema.names
+        cols.append("__filename")
+        dattab = dat.to_table(columns=cols)
+        pdat = dattab.to_pandas()
+        
+        # NEXT: break up file name to append pub date, release, and (IS) domain, site, HOR, VER
+    
     
 ############################    
     
