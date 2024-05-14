@@ -447,7 +447,31 @@ def stack_data_files_parallel(folder,
         dattab = dat.to_table(columns=cols)
         pdat = dattab.to_pandas()
         
-        # NEXT: break up file name to append pub date, release, and (IS) domain, site, HOR, VER
+        # append publication date
+        pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
+        pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
+        pdat = pdat.assign(publicationDate = pubval)
+        
+        # for IS products, append domainID, siteID, HOR, VER
+        if not "siteID" in pdat.columns.to_list():
+            
+            dr = re.compile("D[0-1]{1}[0-9]{1}")
+            domval = [dr.search(d).group(0) for d in pdat["__filename"]]
+            pdat.insert(0, "domainID", domval)
+            
+            sr = re.compile("[.][A-Z]{4}[.]")
+            sitel = [sr.search(s).group(0) for s in pdat["__filename"]]
+            siteval = [re.sub(pattern="[.]", repl="", string=s) for s in sitel]
+            pdat.insert(1, "siteID", siteval)
+            
+            locr = re.compile("[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.]")
+            indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
+            hor = [indx[5:8] for indx in indxs]
+            ver = [indx[9:12] for indx in indxs]
+            pdat.insert(2, "horizontalPosition", hor)
+            pdat.insert(3, "verticalPosition", ver)
+
+        # append release - will be trickier
     
     
 ############################    
