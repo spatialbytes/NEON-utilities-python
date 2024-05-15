@@ -4,6 +4,10 @@ Created on Wed Feb 21 17:00:19 2024
 
 @author: bhass
 
+Installation dependencies:
+    conda install pytest
+    conda install parameterized
+
 Unit tests for by_file_aop and by_tile_aop.
 
 These mainly test the function's output messages for invalid inputs, 
@@ -22,24 +26,21 @@ Notes:
 """
 
 # import required packages
+
 import os
+import io
+import sys
 import shutil
 from pathlib import Path
 import glob
 import pandas as pd
-from shapely.geometry import Point
-import geopandas as gpd
 from neonutilities import by_file_aop, by_tile_aop
-# from neonutilities import by_file_aop, by_tile_aop, validate_dpid
 
 import pytest
 import unittest
 from unittest import mock
 from unittest.mock import patch
 from parameterized import parameterized
-
-import sys
-import io
 
 # read in token from os.environ
 token = os.environ.get("NEON_TOKEN")
@@ -315,7 +316,25 @@ class TestByTileAop(unittest.TestCase):
                 f'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
     @patch('builtins.input', return_value='n')
-    def test_blan_info_message(self, input_mock):
+    @patch('importlib.import_module')
+    @patch('logging.info')
+    def test_pyproj_not_installed(self, logging_mock, import_module_mock, input_mock):
+        # Setup the mock to raise ImportError when pyproj is attempted to be imported
+        import_module_mock.side_effect = ImportError(
+            "No module named 'pyproj'")
+
+        by_tile_aop(dpid="DP3.30015.001", site='BLAN', year=2022,
+                    easting=243758.81, northing=4330667.37,
+                    include_provisional=False, verbose=True)
+
+        # Check if logging.info was called with the correct message
+        # There will also be a message about the include_provisional, so can't use assert_called_once_with
+        logging_mock.assert_any_call(
+            "Package pyproj is required for this function to work at the BLAN site. Install and re-try"
+        )
+
+    @patch('builtins.input', return_value='n')
+    def test_blan_utm_info_message(self, input_mock):
         """
         Test that the by_tile_aop() function returns the expected message about UTM zone conversion when BLAN is the site.
         """
