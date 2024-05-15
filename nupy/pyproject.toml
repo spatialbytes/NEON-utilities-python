@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonutilities"
-version = "0.0.8"
+version = "0.0.9"
 authors = [
     {name="Claire Lunch", email="clunch@battelleecology.org"},
     {name="Bridget Hass", email="bhass@battelleecology.org"},
@@ -15,11 +15,13 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "datetime",
-    "requests",
+    "importlib-resources",
+    "importlib.metadata",
     "pathlib",
-    "progress",
     "pandas",
-    "importlib.metadata"
+    "pyproj",
+    "requests",
+    "tqdm"
 ]
 
 [project.license]
