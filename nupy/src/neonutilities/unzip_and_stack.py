@@ -24,7 +24,6 @@ from . import __resources__
 # n_cores = 1
 
 def unzip_zipfile_parallel(zippath,
-                           outpath=zippath[:-4],
                            level='all',
                            n_cores=1):
     """
@@ -57,6 +56,8 @@ def unzip_zipfile_parallel(zippath,
     if not zippath[-4:] in ['.zip','.ZIP']:
         print('Zip file read failed because zippath must be a file path to a compressed zip file (file type .zip or .ZIP).\n')
         return None
+    else:
+        outpath=zippath[:-4]
     if not level in ['top','all','in']:
         print('Unzipping failed because level must be one of the followin options: all, in, top.\n')
         return None
@@ -194,7 +195,13 @@ def get_variables(v):
         if v.dataType[i] in ["string", "uri"]:
             typ = pa.string()
         if v.dataType[i] == "dateTime":
-            typ = pa.timestamp("s", tz="UTC")
+            if v.pubFormat[i] in ["yyyy-MM-dd'T'HH:mm:ss'Z'(floor)","yyyy-MM-dd'T'HH:mm:ss'Z'(round)"]:
+                typ = pa.timestamp("s", tz="UTC")
+            else:
+                if v.pubFormat[i] in ["yyyy-MM-dd(floor)","yyyy-MM-dd"]:
+                    typ = pa.date32()
+                else:
+                    typ = pa.string()
         if i==0:
             vschema=pa.schema([(nm, typ)])
         else:
@@ -223,7 +230,7 @@ def table_type_formats(flname):
     """  
     
     flen=len(flname)
-    if flen==5:
+    if flen<=6:
         return "lab"
     else:
         ymr=re.compile("[0-9]{4}-[0-9]{2}")
@@ -316,6 +323,10 @@ def stack_data_files_parallel(folder,
     @author: Zachary Nickerson
     """  
     
+    # folder="C:/Users/nickerson/Downloads/NEON_sediment"
+    # package="expanded"
+    # dpID="DP1.20194.001"
+    
     starttime = datetime.now()
     messages = []
     releases = []
@@ -367,41 +378,38 @@ def stack_data_files_parallel(folder,
     if len(datafls) == 0:
         print("No data files are present in specified file path.\n")
         return None
-    
-    # if there is just one data file (and thus one table name), copy file into stackedFiles folder
-    if len(datafls) == 1:
-        stacked_files_folder = os.path.join(folder, "stackedFiles")
-        if not os.path.exists(stacked_files_folder):
-            os.makedirs(stacked_files_folder)
-        shutil.copy(list(datafls.values())[0], stacked_files_folder)
-        m = 0
-        n = 1
-    
-    # if there is more than one file, stack files
+        
+    # if there is one or more than one file, stack files
+    n = 0
+    m = 0
     if len(datafls) > 1:
         stacked_files_folder = os.path.join(folder, "stackedFiles")
+        if not os.path.exists(stacked_files_folder):
+            os.makedirs(stacked_files_folder) 
+    # if there is just one data file (and thus one table name), copy file into stackedFiles folder
+    if len(datafls) == 1:
+        shutil.copy(list(datafls.values())[0], stacked_files_folder)
+        m = 0
+        n = 1   
         
     # get table types
     table_types=find_table_types(filenames)
     tables=list(table_types.keys())
-    
-    n = 0
-    m = 0
         
     # metadata files
     # copy variables and validation files to /stackedFiles using the most recent publication date
     if any(re.search('variables.20', path) for path in filepaths):
         varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
         v = pd.read_csv(varpath, sep=',')
-        
         # if science review flags are present but missing from variables file, add variables
         if "science_review_flags" not in v['table']:
             if any("science_review_flags" in path for path in filepaths):
                 science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
                 science_review_variables=pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
-        
-        vlist = {k: v for k, v in v.groupby('table')}  
+        vlist = {k: v for k, v in v.groupby('table')}
+        # Writ out the variables file
+        v.to_csv(f"{folder}/stackedFiles/variables_{dpnum}.csv", index=False)
         
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
@@ -417,11 +425,10 @@ def stack_data_files_parallel(folder,
         m+=1
         
     # find external lab tables (lab-current, lab-all) and stack the most recently published file from each lab
-    ## LEFT OFF HERE ##    
     
     #### skipping other cases for now, jumping to site-date
     for j in tables: # assumes tables object has been filtered down to only site-date
-    
+        j='asc_externalLabSummary'
         # create schema from variables file, for only this table and package
         arrowvars = dataset.dataset(source=varpath, format="csv")
         arrowv = arrowvars.to_table()
@@ -439,9 +446,13 @@ def stack_data_files_parallel(folder,
         tabler = re.compile("[.]"+j+"[.]|[.]"+j+"_pub[.]")
         tablepaths = [f for f in filepaths if tabler.search(f)]
         
+        
+        if table_types[j]=='lab':
+            print("temp")
+            ### LEFT OFF HERE ###
+        
         # read data and append file names
-        dat = dataset.dataset(source=tablepaths,
-                            format="csv", schema=tableschema)
+        dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
         cols = tableschema.names
         cols.append("__filename")
         dattab = dat.to_table(columns=cols)
