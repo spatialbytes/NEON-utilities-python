@@ -293,6 +293,56 @@ def find_table_types(datatables):
     return tt
     
 
+def find_lab_names(flpths):
+    """
+
+    Small helper function to find names of labs from filenames of lap-specific files
+    
+    Parameters
+    --------
+    flpths: A list of file paths
+    
+    Return
+    --------
+    A list of unique lab names
+        
+    Created on 5 June 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    flnms = [os.path.basename(f) for f in flpths]
+    splitnames = [f.split(".") for f in flnms]
+    labnames = [f[1] for f in splitnames]
+    return list(set(labnames))
+
+
+def find_sites(flpths):
+    """
+
+    Small helper function to find sites from file names
+    
+    Parameters
+    --------
+    flpths: A list of file paths
+    
+    Return
+    --------
+    A list of unique sites
+        
+    Created on 5 June 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    flnms = [os.path.basename(f) for f in flpths]
+    sr = re.compile("[.][A-Z]{4}[.]")
+    sites = [sr.search(f).group(0) for f in flnms]
+    sites = list(set(sites))
+    sites = [re.sub(pattern="[.]", repl="", string=s) for s in sites]
+    return sites
+
+
 def stack_data_files_parallel(folder,
                               package,
                               dpID,
@@ -394,8 +444,10 @@ def stack_data_files_parallel(folder,
         
     # get table types
     table_types=find_table_types(filenames)
+    if any(re.search("sensor_positions", path) for path in filepaths):
+        table_types["sensor_positions"]="site-all"
     tables=list(table_types.keys())
-        
+    
     # metadata files
     # copy variables and validation files to /stackedFiles using the most recent publication date
     if any(re.search('variables.20', path) for path in filepaths):
@@ -424,11 +476,10 @@ def stack_data_files_parallel(folder,
         messages.append("Copied the most recent publication of categoricalCodes file to /stackedFiles")
         m+=1
         
-    # find external lab tables (lab-current, lab-all) and stack the most recently published file from each lab
-    
-    #### skipping other cases for now, jumping to site-date
-    for j in tables: # assumes tables object has been filtered down to only site-date
-        j='asc_externalLabSummary'
+        
+    # stack tables according to types - DOES NOT handle science review flags yet
+    for j in tables: 
+        
         # create schema from variables file, for only this table and package
         arrowvars = dataset.dataset(source=varpath, format="csv")
         arrowv = arrowvars.to_table()
@@ -442,14 +493,31 @@ def stack_data_files_parallel(folder,
         tablepkgvar = vtabpkg.to_pandas()
         tableschema = get_variables(tablepkgvar)
         
-        # subset the list of files
+        # subset the list of files to the relevant table
         tabler = re.compile("[.]"+j+"[.]|[.]"+j+"_pub[.]")
         tablepaths = [f for f in filepaths if tabler.search(f)]
         
-        
-        if table_types[j]=='lab':
-            print("temp")
-            ### LEFT OFF HERE ###
+        # subset the list of files for lab-specific tables:
+        # get the most recent file from each lab
+        if table_types[j]=="lab":
+            labs = find_lab_names(tablepaths)
+            labrecent = list()
+            for k in labs:
+                labr = re.compile(k)
+                labpaths = [f for f in tablepaths if labr.search(f)]
+                labrecent.append(get_recent_publication(labpaths)[0])
+            tablepaths = labrecent
+            
+        # subset the list of files for site-all tables:
+        # get the most recent file from each site
+        if table_types[j]=="site-all":
+            sites = find_sites(tablepaths)
+            siterecent = list()
+            for k in sites:
+                sr = re.compile(k)
+                sitepaths = [f for f in tablepaths if sr.search(f)]
+                siterecent.append(get_recent_publication(sitepaths)[0])
+            tablepaths = siterecent
         
         # read data and append file names
         dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
