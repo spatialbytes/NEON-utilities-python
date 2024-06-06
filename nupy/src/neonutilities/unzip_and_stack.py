@@ -10,6 +10,7 @@ import platform
 import glob
 import re
 import time
+import tqdm
 import importlib_resources
 from datetime import datetime
 import shutil
@@ -343,10 +344,39 @@ def find_sites(flpths):
     return sites
 
 
+def remove_srf_dups(srftab):
+    """
+
+    Small helper function to remove duplicates and updated records from science review flag tables
+    
+    Parameters
+    --------
+    srftab: A pandas table of SRF records
+    
+    Return
+    --------
+    A de-duplicated pandas table of SRF records
+        
+    Created on 6 June 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    idset = list(set(srftab["srfID"]))
+    srfsublist = []
+    for i in idset:
+        srfsubi = srftab[srftab.srfID==i]
+        indi = srfsubi.idxmax()["lastUpdateDateTime"]
+        srfsublist.append(srfsubi.loc[indi])
+    srfsub = pd.DataFrame(srfsublist)
+    return srfsub
+
+
 def stack_data_files_parallel(folder,
                               package,
                               dpID,
-                              n_cores=1
+                              n_cores=1,
+                              progress=True
                               ):
     """
 
@@ -357,6 +387,7 @@ def stack_data_files_parallel(folder,
     folder: The filepath location of the unzipped NEON download package folder.
     dpID: Data product ID of product to stack.
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
+    progress: Should a progress bar be displayed?
     
     Return
     --------
@@ -446,6 +477,8 @@ def stack_data_files_parallel(folder,
     table_types=find_table_types(filenames)
     if any(re.search("sensor_positions", path) for path in filepaths):
         table_types["sensor_positions"]="site-all"
+    if any(re.search("science_review_flags", path) for path in filepaths):
+        table_types["science_review_flags"]="site-date"
     tables=list(table_types.keys())
     
     # metadata files
@@ -460,8 +493,9 @@ def stack_data_files_parallel(folder,
                 science_review_variables=pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
         vlist = {k: v for k, v in v.groupby('table')}
-        # Writ out the variables file
+        # Write out the variables file
         v.to_csv(f"{folder}/stackedFiles/variables_{dpnum}.csv", index=False)
+        varpath = f"{folder}/stackedFiles/variables_{dpnum}.csv"
         
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
@@ -477,10 +511,11 @@ def stack_data_files_parallel(folder,
         m+=1
         
         
-    # stack tables according to types - DOES NOT handle science review flags yet
-    for j in tables: 
+    # stack tables according to types
+    for j in tqdm(tables, disable=not progress): 
         
         # create schema from variables file, for only this table and package
+        # should we include an option to read in without schema if variables file is missing?
         arrowvars = dataset.dataset(source=varpath, format="csv")
         arrowv = arrowvars.to_table()
         vtab = arrowv.filter(pa.compute.field("table") == j)
@@ -531,6 +566,8 @@ def stack_data_files_parallel(folder,
         pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
         pdat = pdat.assign(publicationDate = pubval)
         
+        # append release - will be trickier. not present in file names, but in paths
+        
         # for IS products, append domainID, siteID, HOR, VER
         if not "siteID" in pdat.columns.to_list():
             
@@ -543,14 +580,19 @@ def stack_data_files_parallel(folder,
             siteval = [re.sub(pattern="[.]", repl="", string=s) for s in sitel]
             pdat.insert(1, "siteID", siteval)
             
-            locr = re.compile("[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.]")
-            indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
-            hor = [indx[5:8] for indx in indxs]
-            ver = [indx[9:12] for indx in indxs]
-            pdat.insert(2, "horizontalPosition", hor)
-            pdat.insert(3, "verticalPosition", ver)
+            if j != "sensor_positions":
+            
+                locr = re.compile("[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.]")
+                indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
+                hor = [indx[5:8] for indx in indxs]
+                ver = [indx[9:12] for indx in indxs]
+                pdat.insert(2, "horizontalPosition", hor)
+                pdat.insert(3, "verticalPosition", ver)
 
-        # append release - will be trickier
+        # for SRF files, remove duplicates and modified records
+        if j == "science_review_flags":
+            pdat = remove_srf_dups(pdat)
+
     
     
 ############################    
@@ -562,6 +604,7 @@ def stack_by_table(filepath,
                    savepath=None, 
                    save_unzipped_files=False, 
                    n_cores=1,
+                   progress=True
                    #useFasttime=False # Is there an equivalent in python?
                    ):
     """
@@ -574,6 +617,7 @@ def stack_by_table(filepath,
     savepath: The location to save the output files to. (optional)
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
+    progress: Should a progress bar be displayed?
     
     Return
     --------
