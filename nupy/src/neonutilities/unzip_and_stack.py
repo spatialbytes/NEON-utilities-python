@@ -404,9 +404,9 @@ def stack_data_files_parallel(folder,
     @author: Zachary Nickerson
     """  
     
-    # folder="C:/Users/nickerson/Downloads/NEON_sediment"
+    # folder="C:/Users/nickerson/Downloads/NEON_elev-surfacewater"
     # package="expanded"
-    # dpID="DP1.20194.001"
+    # dpID="DP1.20016.001"
     
     starttime = datetime.now()
     messages = []
@@ -492,6 +492,12 @@ def stack_data_files_parallel(folder,
                 science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
                 science_review_variables=pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
+        # # if sensor positions are present but missing from variables file, add variables
+        # if "sensor_positions" not in v['table']:
+        #     if any("sensor_positions" in path for path in filepaths):
+        #         science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
+        #         science_review_variables=pd.read_csv(science_review_file, index_col=None)
+        #         v = pd.concat([v, science_review_variables], ignore_index=True)
         vlist = {k: v for k, v in v.groupby('table')}
         # Write out the variables file
         v.to_csv(f"{folder}/stackedFiles/variables_{dpnum}.csv", index=False)
@@ -513,7 +519,7 @@ def stack_data_files_parallel(folder,
         
     # stack tables according to types
     for j in tqdm(tables, disable=not progress): 
-        
+        j='ais_maintenance'
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
         arrowvars = dataset.dataset(source=varpath, format="csv")
@@ -561,12 +567,19 @@ def stack_data_files_parallel(folder,
         dattab = dat.to_table(columns=cols)
         pdat = dattab.to_pandas()
         
-        # append publication date
-        pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
-        pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
-        pdat = pdat.assign(publicationDate = pubval)
+        # # append publication date
+        # pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
+        # pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
+        # pdat = pdat.assign(publicationDate = pubval)
         
-        # append release - will be trickier. not present in file names, but in paths
+        # append publication date and release
+        pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
+        pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
+        pubval = [re.sub("\\..*","",s) for s in pubrelval]
+        relval = [re.sub(".*\\.","",s) for s in pubrelval]
+        relval = [re.sub("\\/","",s) for s in relval]
+        pdat = pdat.assign(publicationDate = pubval,
+                           release = relval)
         
         # for IS products, append domainID, siteID, HOR, VER
         if not "siteID" in pdat.columns.to_list():
@@ -588,7 +601,15 @@ def stack_data_files_parallel(folder,
                 ver = [indx[9:12] for indx in indxs]
                 pdat.insert(2, "horizontalPosition", hor)
                 pdat.insert(3, "verticalPosition", ver)
+                
+            # also for IS tables, sort the table by site, then HOR/VER, then date, all ascending
+            pdat.sort_values(by=['siteID','horizontalPosition','verticalPosition','endDateTime'],
+                             ascending=[True,True,True,True],
+                             inplace=True)
 
+        # for OS tables, sory by site and activity end date
+        ## ZN Question: How can I always identify the activity end date in a table b/c OS tables can have different terms for that variable?
+        
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
             pdat = remove_srf_dups(pdat)
