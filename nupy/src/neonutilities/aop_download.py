@@ -16,27 +16,30 @@ written by:
 @author: Christine Laney (claney@battelleecology.org)
 
 """
-# TODO: Set user agent - test with Christine (not using VPN)
+# TODO: Set user agent - test with Christine (not using VPN?)
 # TODO: Get DOIs and generate citations (using get_citation function)
-# TODO: Switch to tdq progress bar instead of Bar for consistency with other download functions
-# TODO: Separate out input validity messages to be used by the two download functions, raise value errors instead of just printing a message
+# NOT NEEDED? expired URL handling (this was necessary for ECS storage but not GCS) < retry flow still helpful?
 # DONE: Added provisional/release handling in by_file_aop and by_tile_aop
-# NOT NEEDED: expired URL handling (this was necessary for ECS storage but not GCS)
+# DONE: Switch to tqdm progress bar instead of Bar for consistency with other download functions - check if Python 3.10 is required
+# DONE: Separate out input validity messages to be used by the two download functions, raise value errors instead of just printing a message
+# DONE: Update docstrings to include "Raises" with errors raised for invalid inputs, etc.
 
 from time import sleep
-from progress.bar import Bar
 import re
 import pandas as pd
 import numpy as np
+import logging
+import tqdm
+# from progress.bar import Bar
 import importlib
 import importlib_resources
 from . import __resources__
 from pathlib import Path
 from .helper_mods.api_helpers import get_api
-import logging
+
 # display the log info messages, only showing the message (otherwise it would print INFO:root:'message')
 logging.basicConfig(level=logging.INFO, format='%(message)s')
-# from tdqm import tdqm
+# from tqdm import tqdm
 
 
 # check that token was used
@@ -60,7 +63,8 @@ def check_token(response):
     """
 
     if 'x-ratelimit-limit' in response.headers and response.headers['x-ratelimit-limit'] == '200':
-        print('API token was not recognized. Public rate limit applied.\n')
+        logging.info(
+            'API token was not recognized. Public rate limit applied.\n')
 
 
 def convert_byte_size(size_bytes):
@@ -217,7 +221,7 @@ def get_file_urls(urls, token=None):
     for url in urls:
         response = get_api(api_url=url, token=token)
         if not response:
-            print(
+            logging.info(
                 f"Data file retrieval failed. Check NEON data portal for outage alerts.")
 
         # get release info
@@ -401,7 +405,10 @@ def by_file_aop(dpid,
 
     Raises
     --------
-    None
+    ValueError: If `dpid` is not formatted as expected.
+    ValueError: If field spectra data are attempted with the given `dpid`.
+    ValueError: If `site` is not a 4-letter character string.
+    ValueError: If `year` is not a valid year format, or is not > 2010
 
     Examples
     --------
@@ -539,15 +546,15 @@ def by_file_aop(dpid,
     print(
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
-    # for file in tdqm(files): # if tdqm imports properly, this should work
-    with Bar('Download Progress...', max=len(files)) as bar:
-        for file in files:
-            # try:
-            download_file(file, download_path)
-            bar.next()
-        # except Exception as e:
-        #     print(e)
-        bar.finish()
+    # for file in tdqm(files): # if tqdm imports properly, this should work
+    for file in tqdm(files):  # if tqdm imports properly, this should work
+        download_file(file, download_path)
+
+    # with Bar('Download Progress...', max=len(files)) as bar:
+    #     for file in files:
+    #         download_file(file, download_path)
+    #         bar.next()
+    #     bar.finish()
 
     return
 
@@ -615,6 +622,16 @@ def by_tile_aop(dpid,
     Return
     --------
     A folder in the working directory, containing all AOP files meeting query criteria.
+
+    Raises
+    --------
+    ValueError: If `dpid` is not formatted as expected.
+    ValueError: If field spectra data (DP1.30012.001) are provided as the dpid.
+    ValueError: If `site` is not a 4-letter character string.
+    ValueError: If `year` is not a valid year format, or is not > 2010.
+    ValueError: If `easting` is invalid.
+    ValueError: If `northing` is invalid.
+    ImportError: If `pyproj` is not installed.
 
     Example
     --------
@@ -881,15 +898,15 @@ def by_tile_aop(dpid,
     print(
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
-    # for file in tdqm(files): # if tdqm imports properly, this should work
-    with Bar('Download Progress...', max=len(files)) as bar:
-        for file in files:
-            # try:
-            download_file(file, download_path)
-            bar.next()
-        # except Exception as e:
-        #     print(e)
-        bar.finish()
+    for file in tqdm(files):  # if tqdm imports properly, this should work
+        download_file(file, download_path)
+
+    # otherwise, alternative using Bar (from progress package)
+    # with Bar('Download Progress...', max=len(files)) as bar:
+    #     for file in files:
+    #         download_file(file, download_path)
+    #         bar.next()
+    #     bar.finish()
 
     return
 

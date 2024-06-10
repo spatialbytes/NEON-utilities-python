@@ -15,11 +15,13 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "datetime",
-    "requests",
+    "importlib-resources",
+    "importlib.metadata",
     "pathlib",
-    "progress",
     "pandas",
-    "importlib.metadata"
+    "pyproj",
+    "requests",
+    "tqdm"
 ]
 
 [project.license]
