@@ -10,9 +10,9 @@ import platform
 import glob
 import re
 import time
-import tqdm
 import importlib_resources
 from datetime import datetime
+from tqdm import tqdm
 import shutil
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -25,7 +25,6 @@ from . import __resources__
 # n_cores = 1
 
 def unzip_zipfile_parallel(zippath,
-                           level='all',
                            n_cores=1):
     """
 
@@ -34,8 +33,6 @@ def unzip_zipfile_parallel(zippath,
     Parameters
     --------
     zippath: The filepath of the input file.
-    outpath: The name of the folder to save unpacked files to. Defaults to a directory with the same path as the input zip file.
-    level: Whether the unzipping should occur only for the 'top' zip file, or unzip 'all' recursively, or only files 'in' the folder specified. Defaults to 'all'.
     n_cores: Number of cores to use for parallelization. Defaults to 1.
     
     Return
@@ -54,19 +51,16 @@ def unzip_zipfile_parallel(zippath,
     """    
     
     # Error handling on inputs
-    if not zippath[-4:] in ['.zip','.ZIP']:
-        print('Zip file read failed because zippath must be a file path to a compressed zip file (file type .zip or .ZIP).\n')
-        return None
+    if zippath[-4:] in ['.zip','.ZIP']:
+        outpath = os.path.dirname(zippath)
+        level = "all"
     else:
-        outpath=zippath[:-4]
-    if not level in ['top','all','in']:
-        print('Unzipping failed because level must be one of the followin options: all, in, top.\n')
-        return None
+        outpath = zippath
+        level = "in"
     if not isinstance(n_cores, int):
-        print('Unzipping in parellel failed because n_cores must be an integer.\n')
-        return None
+        n_cores = 1
     
-    if level == 'all':
+    if level == "all":
         zip_ref = zipfile.ZipFile(zippath,'r')
         tl = zip_ref.namelist()
         
@@ -76,16 +70,25 @@ def unzip_zipfile_parallel(zippath,
             return None
                
         # Unzip file and get list of zips within
-        zip_ref.extractall(outpath)
-        zps = glob.glob(outpath+"/*.zip")
+        zip_ref.extractall(path=outpath)
+        zps = glob.glob(zippath[:-4]+"/*.zip")
         
         # If there are more zips within parent zip file, unzip those as well
-        if type(zps) == list:
+        # does this happen anymore? this might be deprecated.
+        # level as an input might also be deprecated
+        if len(zps) > 0:
             print('need an example to properly code this up.\n')
-        else:
-            zps = outpath
         
-        return zps
+    if level == "in":
+        zps = glob.glob(outpath+"/*.zip")
+        
+        for i in range(0, len(zps)):
+            zip_refi = zipfile.ZipFile(zps[i],'r')
+            outpathi = zps[i][:-4]
+            zip_refi.extractall(path=outpathi)
+            os.remove(path=zps[i])
+        
+    return None
 
 def find_datatables(folder,
                     f_names=True):
@@ -196,7 +199,7 @@ def get_variables(v):
         if v.dataType[i] in ["string", "uri"]:
             typ = pa.string()
         if v.dataType[i] == "dateTime":
-            if v.pubFormat[i] in ["yyyy-MM-dd'T'HH:mm:ss'Z'(floor)","yyyy-MM-dd'T'HH:mm:ss'Z'(round)"]:
+            if v.pubFormat[i] in ["yyyy-MM-dd'T'HH:mm:ss'Z'(floor)","yyyy-MM-dd'T'HH:mm:ss'Z'","yyyy-MM-dd'T'HH:mm:ss'Z'(round)"]:
                 typ = pa.timestamp("s", tz="UTC")
             else:
                 if v.pubFormat[i] in ["yyyy-MM-dd(floor)","yyyy-MM-dd"]:
@@ -518,8 +521,9 @@ def stack_data_files_parallel(folder,
         
         
     # stack tables according to types
+    stacklist = []
     for j in tqdm(tables, disable=not progress): 
-        j='ais_maintenance'
+        #j='ais_maintenance'
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
         arrowvars = dataset.dataset(source=varpath, format="csv")
@@ -567,24 +571,25 @@ def stack_data_files_parallel(folder,
         dattab = dat.to_table(columns=cols)
         pdat = dattab.to_pandas()
         
-        # # append publication date
-        # pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
-        # pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
-        # pdat = pdat.assign(publicationDate = pubval)
+        # append publication date
+        pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
+        pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
+        pdat = pdat.assign(publicationDate = pubval)
         
-        # append publication date and release
-        pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
-        pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
-        pubval = [re.sub("\\..*","",s) for s in pubrelval]
-        relval = [re.sub(".*\\.","",s) for s in pubrelval]
-        relval = [re.sub("\\/","",s) for s in relval]
-        pdat = pdat.assign(publicationDate = pubval,
-                           release = relval)
+        # # append publication date and release
+        # # this doesn't work on download by file (specific table or averaging interval) because all you have is the file name
+        # pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
+        # pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
+        # pubval = [re.sub("\\..*","",s) for s in pubrelval]
+        # relval = [re.sub(".*\\.","",s) for s in pubrelval]
+        # relval = [re.sub("\\/","",s) for s in relval]
+        # pdat = pdat.assign(publicationDate = pubval,
+        #                    release = relval)
         
         # for IS products, append domainID, siteID, HOR, VER
         if not "siteID" in pdat.columns.to_list():
             
-            dr = re.compile("D[0-1]{1}[0-9]{1}")
+            dr = re.compile("D[0-2]{1}[0-9]{1}")
             domval = [dr.search(d).group(0) for d in pdat["__filename"]]
             pdat.insert(0, "domainID", domval)
             
@@ -614,7 +619,10 @@ def stack_data_files_parallel(folder,
         if j == "science_review_flags":
             pdat = remove_srf_dups(pdat)
 
-    
+        # add table to list
+        stacklist.append(pdat)
+        
+    return stacklist
     
 ############################    
     
@@ -626,7 +634,6 @@ def stack_by_table(filepath,
                    save_unzipped_files=False, 
                    n_cores=1,
                    progress=True
-                   #useFasttime=False # Is there an equivalent in python?
                    ):
     """
 
@@ -662,7 +669,7 @@ def stack_by_table(filepath,
     else:
         folder = True
     
-    # Check whether data should be stacked
+    # Get list of files nested (and/or zipped) in filepath
     if not folder:
         zip_ref = zipfile.ZipFile(filepath,'r')
         files = zip_ref.namelist()
@@ -686,6 +693,7 @@ def stack_by_table(filepath,
         return
     else:
         dpID = dpID[0]
+        
     # Determine download package
     package_listlist = []
     for f in range(len(files)):
@@ -704,7 +712,7 @@ def stack_by_table(filepath,
         
     # Error messafe for SAE data
     if dpID == 'DP4.00200.001':
-        logging.info("This eddy covariance data product is in HDF5 format. Stack using stack_eddy()")
+        logging.info("This eddy covariance data product is in HDF5 format. Stack using the stackEddy() function in the R package version of neonUtilities.")
         return
         
     # Exceptions for digital hemispheric photos
@@ -713,57 +721,37 @@ def stack_by_table(filepath,
         logging.info("Note: Digital hemispheric photos (in NEF format) cannot be stacked; only the CSV metadata files will be stacked.")
         
     # Warning about all sensor soil data
+    # Test and modify the file length for the alert, this should be a lot better with arrow
     if dpID in ['DP1.00094.001','DP1.00041.001'] and len(files) > 24:
-        logging.info("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks, using the nCores= parameter to parallelize stacking, and/or using a high-performance system.")
+        logging.info("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks and/or using a high-performance system.")
     
     # If all checks pass, unzip and stack files
     
     # If the filepath is a zip file
-    envt = 0
     if not folder:
-        if savepath is None:
-            savepath = filepath[:-4]
-        if savepath == "envt":
-            savepath = os.path.join(os.getcwd(), "store" + time.strftime("%Y%m%d%H%M%S"))
-            envt = 1
         if re.search(".zip", files):
-            ziplist = unzip_zipfile_parallel(zippath = filepath, outpath = savepath)
+            unzip_zipfile_parallel(zippath = filepath)
+            stackpath = filepath[:-4]
         else:
-            if not os.path.exists(savepath):
-                os.makedirs(savepath)
-            if envt == 0:
-                with zipfile.ZipFile(filepath, 'r') as zip_ref:
-                    zip_ref.extractall(savepath.parent)
-            else:
-                with zipfile.ZipFile(filepath, 'r') as zip_ref:
-                    zip_ref.extractall(savepath)
-            ziplist = os.listdir(savepath)
-            ziplist = [file for file in ziplist if re.search("NEON[.]D[0-9]{2}[.][A-Z]{4}[.]DP[0-4]{1}[.]", file)]
-    
+            logging.info("Zip files not found. Check for file path errors.")
+            return None
+            
+    # If the filepath is a directory
     if folder:
-        if savepath is None:
-            savepath = filepath
-        if savepath == "envt":
-            savepath = os.path.join(os.getcwd(), "store" + time.strftime("%Y%m%d%H%M%S"))
-            envt = 1
-        ziplist = files
         if any(".zip" in file for file in files):
-            unzip_zipfile_parallel(zippath=filepath, outpath=savepath, level="in")
-        else:
-            if filepath != savepath:
-                if not os.path.exists(savepath):
-                    os.makedirs(savepath)
-                for i in files:
-                    shutil.copy(os.path.join(filepath, i), savepath)
-                    
-
-        
-        
+            unzip_zipfile_parallel(zippath = filepath)
+        stackpath = filepath
             
-            
-
-  
-    
-    
-    
-    #
+    # Stack the files
+    stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
+        
+    if savepath is not None:
+        if not os.path.exists(savepath):
+            os.makedirs(savepath)
+        # write files to path
+        # does stackedlist need to be a dictionary to have a name for each table?
+        for k in range(0, len(stackedlist)):
+            print("code not written yet")
+        return None
+    else:
+        return stackedlist

@@ -288,3 +288,4 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     download_urls(url_set=durls, outpath=outpath,
                   token=token, progress=progress)
     
+    return None
