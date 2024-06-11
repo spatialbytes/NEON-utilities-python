@@ -186,10 +186,8 @@ def get_variables(v):
     """    
     
     # function assumes variables are loaded as a pandas data frame.
-    # would be best to move away from pandas
         
     # create pyarrow schema by translating NEON data types to pyarrow types
-    # should probably do this with a dictionary instead of if statements
     for i in range(0, len(v)):
         nm = v.fieldName[i]
         if v.dataType[i]=="real":
@@ -430,8 +428,13 @@ def stack_data_files_parallel(folder,
         reltab = pd.read_csv(relfl[0], encoding='utf-8')
     else:
         reltab = None    
+        
+    # dictionary for outputs
+    stacklist = {}
+
     
     # handle per-sample tables separately ## ZN Note: Need to test specifically
+    # need to modify this to add to dictionary instead of writing to file
     if dpID in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
@@ -466,15 +469,16 @@ def stack_data_files_parallel(folder,
     # if there is one or more than one file, stack files
     n = 0
     m = 0
-    if len(datafls) > 1:
-        stacked_files_folder = os.path.join(folder, "stackedFiles")
-        if not os.path.exists(stacked_files_folder):
-            os.makedirs(stacked_files_folder) 
-    # if there is just one data file (and thus one table name), copy file into stackedFiles folder
-    if len(datafls) == 1:
-        shutil.copy(list(datafls.values())[0], stacked_files_folder)
-        m = 0
-        n = 1   
+    # if len(datafls) > 1:
+    #     stacked_files_folder = os.path.join(folder, "stackedFiles")
+    #     if not os.path.exists(stacked_files_folder):
+    #         os.makedirs(stacked_files_folder) 
+    # # if there is just one data file (and thus one table name), copy file into stackedFiles folder
+    # # I think we can get rid of this section
+    # if len(datafls) == 1:
+    #     shutil.copy(list(datafls.values())[0], stacked_files_folder)
+    #     m = 0
+    #     n = 1   
         
     # get table types
     table_types=find_table_types(filenames)
@@ -485,50 +489,49 @@ def stack_data_files_parallel(folder,
     tables=list(table_types.keys())
     
     # metadata files
-    # copy variables and validation files to /stackedFiles using the most recent publication date
+    # get variables and validation files using the most recent publication date
     if any(re.search('variables.20', path) for path in filepaths):
         varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
         v = pd.read_csv(varpath, sep=',')
+
         # if science review flags are present but missing from variables file, add variables
         if "science_review_flags" not in v['table']:
             if any("science_review_flags" in path for path in filepaths):
                 science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
                 science_review_variables=pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
-        # # if sensor positions are present but missing from variables file, add variables
-        # if "sensor_positions" not in v['table']:
-        #     if any("sensor_positions" in path for path in filepaths):
-        #         science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
-        #         science_review_variables=pd.read_csv(science_review_file, index_col=None)
-        #         v = pd.concat([v, science_review_variables], ignore_index=True)
+
+        # if sensor positions are present but missing from variables file, add variables
+        if "sensor_positions" not in v['table']:
+            if any("sensor_positions" in path for path in filepaths):
+                sensor_positions_file=(importlib_resources.files(__resources__)/"sensor_positions_variables.csv")
+                sensor_positions_variables=pd.read_csv(sensor_positions_file, index_col=None)
+                v = pd.concat([v, sensor_positions_variables], ignore_index=True)
+
+        # save the variables file
         vlist = {k: v for k, v in v.groupby('table')}
-        # Write out the variables file
-        v.to_csv(f"{folder}/stackedFiles/variables_{dpnum}.csv", index=False)
-        varpath = f"{folder}/stackedFiles/variables_{dpnum}.csv"
+        stacklist[f"variables{dpnum}"] = v
         
+    # get validation file
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
-        shutil.copy(valpath, f"{folder}/stackedFiles/validation_{dpnum}.csv")
-        messages.append("Copied the most recent publication of validation file to /stackedFiles")
-        m+=1
+        val = pd.read_csv(valpath, sep=',')
+        stacklist[f"validation{dpnum}"] = val
 
-    # copy categoricalCodes file to /stackedFiles using the most recent publication date
+    # get categoricalCodes file
     if any(re.search('categoricalCodes', path) for path in filepaths):
-        valpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
-        shutil.copy(valpath, f"{folder}/stackedFiles/categoricalCodes_{dpnum}.csv")
-        messages.append("Copied the most recent publication of categoricalCodes file to /stackedFiles")
-        m+=1
+        ccpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
+        cc = pd.read_csv(ccpath, sep=',')
+        stacklist[f"categoricalCodes{dpnum}"] = cc
         
         
     # stack tables according to types
-    stacklist = []
     for j in tqdm(tables, disable=not progress): 
-        #j='ais_maintenance'
+
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
-        arrowvars = dataset.dataset(source=varpath, format="csv")
-        arrowv = arrowvars.to_table()
-        vtab = arrowv.filter(pa.compute.field("table") == j)
+        arrowvars = pa.Table.from_pandas(stacklist[f"variables{dpnum}"])
+        vtab = arrowvars.filter(pa.compute.field("table") == j)
         
         if package=="basic":
             vtabpkg = vtab.filter(pa.compute.field("downloadPkg") == "basic")
@@ -620,7 +623,7 @@ def stack_data_files_parallel(folder,
             pdat = remove_srf_dups(pdat)
 
         # add table to list
-        stacklist.append(pdat)
+        stacklist[j] = pdat
         
     return stacklist
     
@@ -745,13 +748,22 @@ def stack_by_table(filepath,
     # Stack the files
     stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
         
-    if savepath is not None:
-        if not os.path.exists(savepath):
-            os.makedirs(savepath)
-        # write files to path
-        # does stackedlist need to be a dictionary to have a name for each table?
-        for k in range(0, len(stackedlist)):
-            print("code not written yet")
-        return None
-    else:
+    # write files to path if requested
+    if savepath == "envt":
         return stackedlist
+    else:
+        if savepath is None:
+            stacked_files_dir = os.path.join(stackpath, "stackedFiles")
+            
+        elif savepath is not "envt":
+            stacked_files_dir = os.path.join(savepath, "stackedFiles")
+        
+        if not os.path.exists(stacked_files_dir):
+            os.makedirs(stacked_files_dir)
+
+        for k in stackedlist.keys():
+            tk = stackedlist[k]
+            tk.to_csv(f"stacked_files_dir/{k}.csv", index=False)
+
+        return None
+        
