@@ -1,6 +1,8 @@
 datetime
-requests
-pathlib
-progress
-pandas
+importlib-resources
 importlib.metadata
+pathlib
+pandas
+pyproj
+requests
+tqdm

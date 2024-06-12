@@ -14,6 +14,7 @@ import importlib_resources
 from datetime import datetime
 from tqdm import tqdm
 import shutil
+from .tabular_download import zips_by_product
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -469,12 +470,12 @@ def stack_data_files_parallel(folder,
     # if there is one or more than one file, stack files
     n = 0
     m = 0
+    # # I think we can get rid of this section
     # if len(datafls) > 1:
     #     stacked_files_folder = os.path.join(folder, "stackedFiles")
     #     if not os.path.exists(stacked_files_folder):
     #         os.makedirs(stacked_files_folder) 
     # # if there is just one data file (and thus one table name), copy file into stackedFiles folder
-    # # I think we can get rid of this section
     # if len(datafls) == 1:
     #     shutil.copy(list(datafls.values())[0], stacked_files_folder)
     #     m = 0
@@ -495,14 +496,14 @@ def stack_data_files_parallel(folder,
         v = pd.read_csv(varpath, sep=',')
 
         # if science review flags are present but missing from variables file, add variables
-        if "science_review_flags" not in v['table']:
+        if "science_review_flags" not in list(v["table"]):
             if any("science_review_flags" in path for path in filepaths):
                 science_review_file=(importlib_resources.files(__resources__)/"science_review_variables.csv")
                 science_review_variables=pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
 
         # if sensor positions are present but missing from variables file, add variables
-        if "sensor_positions" not in v['table']:
+        if "sensor_positions" not in list(v["table"]):
             if any("sensor_positions" in path for path in filepaths):
                 sensor_positions_file=(importlib_resources.files(__resources__)/"sensor_positions_variables.csv")
                 sensor_positions_variables=pd.read_csv(sensor_positions_file, index_col=None)
@@ -610,10 +611,10 @@ def stack_data_files_parallel(folder,
                 pdat.insert(2, "horizontalPosition", hor)
                 pdat.insert(3, "verticalPosition", ver)
                 
-            # also for IS tables, sort the table by site, then HOR/VER, then date, all ascending
-            pdat.sort_values(by=['siteID','horizontalPosition','verticalPosition','endDateTime'],
-                             ascending=[True,True,True,True],
-                             inplace=True)
+                # also for IS tables, sort the table by site, then HOR/VER, then date, all ascending
+                pdat.sort_values(by=['siteID','horizontalPosition','verticalPosition','endDateTime'],
+                                 ascending=[True,True,True,True],
+                                 inplace=True)
 
         # for OS tables, sory by site and activity end date
         ## ZN Question: How can I always identify the activity end date in a table b/c OS tables can have different terms for that variable?
@@ -732,12 +733,8 @@ def stack_by_table(filepath,
     
     # If the filepath is a zip file
     if not folder:
-        if re.search(".zip", files):
-            unzip_zipfile_parallel(zippath = filepath)
-            stackpath = filepath[:-4]
-        else:
-            logging.info("Zip files not found. Check for file path errors.")
-            return None
+        unzip_zipfile_parallel(zippath = filepath)
+        stackpath = filepath[:-4]
             
     # If the filepath is a directory
     if folder:
@@ -763,7 +760,65 @@ def stack_by_table(filepath,
 
         for k in stackedlist.keys():
             tk = stackedlist[k]
-            tk.to_csv(f"stacked_files_dir/{k}.csv", index=False)
+            tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
 
         return None
         
+
+def load_by_product(dpID, site="all", startdate=None, enddate=None, 
+                    package="basic", release="current", 
+                    timeindex="all", tabl="all", check_size=True,
+                    include_provisional=False, progress=True,
+                    token=None):
+    """
+    Download product-site-month data package files from NEON, stack, and load to the environment.
+    
+    Parameters
+    --------
+    dpID: Data product identifier in the form DP#.#####.###
+    site: One or more 4-letter NEON site codes
+    package: Download package to access, either basic or expanded
+    startdate: Earliest date of data to download, in the form YYYY-MM
+    enddate: Latest date of data to download, in the form YYYY-MM
+    release: Data release to download. Defaults to the most recent release.
+    include_provisional: Should Provisional data be returned in the download? Defaults to False.
+    progress: Should the function display progress bars as it runs? Defaults to True
+    token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
+
+    Return
+    --------
+    A folder on the local drive containing the set of data package files meeting the input criteria.
+
+    Example
+    --------
+    Download water quality data from COMO (Como Creek) in 2018
+
+    >>> load_by_product(dpID="DP1.20288.001",site="COMO",
+                        startdate="2018-01", enddate="2018-12",
+                        token=None)
+    
+    Created on June 12 2024
+
+    @author: Claire Lunch
+    """  
+    
+    savepath = os.getcwd()
+    
+    # let the other functions handle the error messages
+    # right now this will clutter up the user's working directory with files - need to get saveUnzippedFiles=False working
+    zips_by_product(dpID=dpID, site=site, 
+                    startdate=startdate, enddate=enddate,
+                    package=package, release=release,
+                    timeindex=timeindex, tabl=tabl,
+                    check_size=check_size, 
+                    include_provisional=include_provisional,
+                    progress=progress, token=token,
+                    savepath=savepath)
+    
+    stackpath = savepath+"/filesToStack"+dpID[4:9]+"/"
+    
+    outlist = stack_by_table(filepath=stackpath, savepath="envt",
+                             save_unzipped_files=False, progress=progress)
+    
+    return outlist
+
