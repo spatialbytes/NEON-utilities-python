@@ -16,6 +16,7 @@ src/neonutilities.egg-info/top_level.txt
 src/neonutilities/__resources__/chem_bundles.csv
 src/neonutilities/__resources__/other_bundles.csv
 src/neonutilities/__resources__/science_review_variables.csv
+src/neonutilities/__resources__/sensor_positions_variables.csv
 src/neonutilities/__resources__/shared_aquatic.csv
 src/neonutilities/__resources__/shared_flights.csv
 src/neonutilities/__resources__/table_types.csv

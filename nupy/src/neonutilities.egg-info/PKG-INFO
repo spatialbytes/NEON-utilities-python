@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: neonutilities
-Version: 0.0.10
+Version: 0.0.11
 Summary: A package for accessing and wrangling data generated and published by the National Ecological Observatory Network.
 Author-email: Claire Lunch <clunch@battelleecology.org>, Bridget Hass <bhass@battelleecology.org>, Zachary Nicherson <nickerson@battelleecology.org>
 License:                     GNU AFFERO GENERAL PUBLIC LICENSE
@@ -669,11 +669,13 @@ Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: datetime
-Requires-Dist: requests
-Requires-Dist: pathlib
-Requires-Dist: progress
-Requires-Dist: pandas
+Requires-Dist: importlib-resources
 Requires-Dist: importlib.metadata
+Requires-Dist: pathlib
+Requires-Dist: pandas
+Requires-Dist: pyproj
+Requires-Dist: requests
+Requires-Dist: tqdm
 
 NEON-utilities-python/nupy
 ================
