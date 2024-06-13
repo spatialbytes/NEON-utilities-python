@@ -191,10 +191,11 @@ def get_variables(v):
     # create pyarrow schema by translating NEON data types to pyarrow types
     for i in range(0, len(v)):
         nm = v.fieldName[i]
+        typ = pa.string()
         if v.dataType[i]=="real":
-            typ=pa.float32()
+            typ = pa.float32()
         if v.dataType[i] in ["integer", "unsigned integer", "signed integer"]:
-            typ=pa.int32()
+            typ = pa.int32()
         if v.dataType[i] in ["string", "uri"]:
             typ = pa.string()
         if v.dataType[i] == "dateTime":
@@ -204,7 +205,10 @@ def get_variables(v):
                 if v.pubFormat[i] in ["yyyy-MM-dd(floor)","yyyy-MM-dd"]:
                     typ = pa.date32()
                 else:
-                    typ = pa.string()
+                    if v.pubFormat[i] in ["yyyy(floor)", "yyyy(round)"]:
+                        typ=pa.int32()
+                    else:
+                        typ = pa.string()
         if i==0:
             vschema=pa.schema([(nm, typ)])
         else:
@@ -527,6 +531,7 @@ def stack_data_files_parallel(folder,
         
         
     # stack tables according to types
+    logging.info("Stacking data files")
     for j in tqdm(tables, disable=not progress): 
 
         # create schema from variables file, for only this table and package
@@ -622,6 +627,9 @@ def stack_data_files_parallel(folder,
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
             pdat = remove_srf_dups(pdat)
+            
+        # remove filename column
+        pdat = pdat.drop(columns=["__filename"])
 
         # add table to list
         stacklist[j] = pdat
@@ -752,7 +760,7 @@ def stack_by_table(filepath,
         if savepath is None:
             stacked_files_dir = os.path.join(stackpath, "stackedFiles")
             
-        elif savepath is not "envt":
+        elif savepath != "envt":
             stacked_files_dir = os.path.join(savepath, "stackedFiles")
         
         if not os.path.exists(stacked_files_dir):
