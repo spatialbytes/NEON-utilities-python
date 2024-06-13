@@ -21,7 +21,7 @@ from .helper_mods.api_helpers import get_api
 # %% functions to validate inputs (should pull these out into another helper module??)
 
 
-def validate_dpid(dpid):
+def validate_dpid(dpID):
     """
     Validates the format of a NEON data product ID (dpid).
 
@@ -32,14 +32,14 @@ def validate_dpid(dpid):
         ValueError: If the DPID is not in the correct format.
     """
     dpid_pattern = "DP[1-4]{1}.[0-9]{5}.00[1-2]{1}"
-    if not re.fullmatch(dpid_pattern, dpid):
+    if not re.fullmatch(dpid_pattern, dpID):
         raise ValueError(
-            f'{dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#')
+            f'{dpID} is not a properly formatted data product ID. The correct format is DP#.#####.00#')
 
 # %% functions to get the change / issue logs
 
 
-def get_change_log_df(dpid, token=None):
+def get_change_log_df(dpID, token=None):
     """
     Retrieves the change log for a NEON data product.
 
@@ -54,14 +54,14 @@ def get_change_log_df(dpid, token=None):
         'issue', 'resolution'
     """
     req = get_api(
-        api_url=f"http://data.neonscience.org/api/v0/products/{dpid}", token=token)
+        api_url=f"http://data.neonscience.org/api/v0/products/{dpID}", token=token)
     all_product_info = pd.json_normalize(req.json()['data'])
     change_log_df = pd.DataFrame(all_product_info['changeLogs'][0])
 
     return change_log_df
 
 
-def get_eddy_issue_log(dpid, token=None):
+def get_eddy_issue_log(dpID, token=None):
     """
     Retrieves the issue log for bundled eddy covariance data products.
 
@@ -83,10 +83,10 @@ def get_eddy_issue_log(dpid, token=None):
 
     eddy_issue_log_list = []
 
-    for dpid in bundle_dps:
-        change_log_df = get_change_log_df(dpid, token=token)
+    for dpID in bundle_dps:
+        change_log_df = get_change_log_df(dpID, token=token)
         if change_log_df is not None and not change_log_df.empty:
-            change_log_df['dpid'] = dpid
+            change_log_df['dpID'] = dpID
             eddy_issue_log_list.append(change_log_df)
 
     eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
@@ -94,7 +94,7 @@ def get_eddy_issue_log(dpid, token=None):
     return eddy_issue_log_df
 
 
-def get_issue_log(dpid, token=None):
+def get_issue_log(dpID, token=None):
     """
     Retrieves the issue log for any NEON data products. Bundled eddy covariance data products have an additional column of the sub-data product id.
 
@@ -110,11 +110,11 @@ def get_issue_log(dpid, token=None):
         all other data products have the same columns minus 'dpid'
     """
     # raise value error and print message if dpid isn't formatted as expected
-    validate_dpid(dpid)
+    validate_dpid(dpID)
 
-    if dpid == "DP4.00200.001":
-        issue_log_df = get_eddy_issue_log(dpid, token)
+    if dpID == "DP4.00200.001":
+        issue_log_df = get_eddy_issue_log(dpID, token)
     else:
-        issue_log_df = get_change_log_df(dpid, token)
+        issue_log_df = get_change_log_df(dpID, token)
 
     return issue_log_df

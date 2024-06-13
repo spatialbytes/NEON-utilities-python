@@ -15,6 +15,7 @@ from datetime import datetime
 from tqdm import tqdm
 import shutil
 from .tabular_download import zips_by_product
+from .get_issue_log import get_issue_log
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -515,19 +516,19 @@ def stack_data_files_parallel(folder,
 
         # save the variables file
         vlist = {k: v for k, v in v.groupby('table')}
-        stacklist[f"variables{dpnum}"] = v
+        stacklist[f"variables_{dpnum}"] = v
         
     # get validation file
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
         val = pd.read_csv(valpath, sep=',')
-        stacklist[f"validation{dpnum}"] = val
+        stacklist[f"validation_{dpnum}"] = val
 
     # get categoricalCodes file
     if any(re.search('categoricalCodes', path) for path in filepaths):
         ccpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
         cc = pd.read_csv(ccpath, sep=',')
-        stacklist[f"categoricalCodes{dpnum}"] = cc
+        stacklist[f"categoricalCodes_{dpnum}"] = cc
         
         
     # stack tables according to types
@@ -536,7 +537,7 @@ def stack_data_files_parallel(folder,
 
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
-        arrowvars = pa.Table.from_pandas(stacklist[f"variables{dpnum}"])
+        arrowvars = pa.Table.from_pandas(stacklist[f"variables_{dpnum}"])
         vtab = arrowvars.filter(pa.compute.field("table") == j)
         
         if package=="basic":
@@ -634,6 +635,10 @@ def stack_data_files_parallel(folder,
         # add table to list
         stacklist[j] = pdat
         
+    # token omitted here since it's not otherwise used in stacking functions
+    # consider a runLocal option, like in R stackEddy()
+    stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpID=dpID, token=None)
+    
     return stacklist
     
 ############################    
