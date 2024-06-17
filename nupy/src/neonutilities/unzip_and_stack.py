@@ -596,6 +596,18 @@ def stack_data_files_parallel(folder,
         # pdat = pdat.assign(publicationDate = pubval,
         #                    release = relval)
         
+        # append fields to variables file
+        if f"variables_{dpnum}" in stacklist.keys():
+            added_fields_file = (importlib_resources.files(__resources__)/"added_fields.csv")
+            added_fields_file_all = added_fields_file[-2:]
+            added_fields_file_all.insert(0,"table",j)
+            v = stacklist[f"variables_{dpnum}"]
+            isplit = v.index[v["table"]==j].tolist()[-1]
+            v1 = v.iloc[:isplit]
+            v2 = v.iloc[isplit+1:]
+            v = pd.concat([v1, added_fields_file_all, v2]).reset_index(drop=True)
+            stacklist[f"variables_{dpnum}"] = v
+        
         # for IS products, append domainID, siteID, HOR, VER
         if not "siteID" in pdat.columns.to_list():
             
@@ -617,13 +629,38 @@ def stack_data_files_parallel(folder,
                 pdat.insert(2, "horizontalPosition", hor)
                 pdat.insert(3, "verticalPosition", ver)
                 
-                # also for IS tables, sort the table by site, then HOR/VER, then date, all ascending
+                # sort the table by site, then HOR/VER, then date, all ascending
                 pdat.sort_values(by=['siteID','horizontalPosition','verticalPosition','endDateTime'],
                                  ascending=[True,True,True,True],
                                  inplace=True)
-
-        # for OS tables, sory by site and activity end date
-        ## ZN Question: How can I always identify the activity end date in a table b/c OS tables can have different terms for that variable?
+                
+                # append fields to variables file
+                if f"variables_{dpnum}" in stacklist.keys():
+                    added_fields_file_IS = added_fields_file[0:4]
+                    added_fields_file_IS.insert(0,"table",j)
+                    v = stacklist[f"variables_{dpnum}"]
+                    isplit = v.index[v["table"]==j].tolist()[0]
+                    v1 = v.iloc[:isplit-1]
+                    v2 = v.iloc[isplit:]
+                    v = pd.concat([v1, added_fields_file_IS, v2]).reset_index(drop=True)
+                    stacklist[f"variables_{dpnum}"] = v
+        else:
+            # for OS tables, sort by site and date
+            if 'collectDate' in pdat.columns.to_list():
+                datevar = 'collectDate'
+            else:
+                if 'endDate' in pdat.columns.to_list():
+                    datevar = 'endDate'
+                else:
+                    if 'startDate' in pdat.columns.to_list():
+                        datevar = 'startDate'
+                    else:
+                        if 'date' in pdat.columns.to_list():
+                            datevar = 'date'
+            # sort the table by site then date, all ascending
+            pdat.sort_values(by=['siteID',datevar],
+                             ascending=[True,True],
+                             inplace=True)
         
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
