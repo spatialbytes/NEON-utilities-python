@@ -515,7 +515,7 @@ def stack_data_files_parallel(folder,
                 v = pd.concat([v, sensor_positions_variables], ignore_index=True)
 
         # save the variables file
-        vlist = {k: v for k, v in v.groupby('table')}
+        vlist = {k: v for k, v in v.groupby("table")}
         stacklist[f"variables_{dpnum}"] = v
         
     # get validation file
@@ -533,11 +533,11 @@ def stack_data_files_parallel(folder,
         
     # stack tables according to types
     logging.info("Stacking data files")
+    arrowvars = pa.Table.from_pandas(stacklist[f"variables_{dpnum}"])
     for j in tqdm(tables, disable=not progress): 
 
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
-        arrowvars = pa.Table.from_pandas(stacklist[f"variables_{dpnum}"])
         vtab = arrowvars.filter(pa.compute.field("table") == j)
         
         if package=="basic":
@@ -599,14 +599,10 @@ def stack_data_files_parallel(folder,
         # append fields to variables file
         if f"variables_{dpnum}" in stacklist.keys():
             added_fields_file = (importlib_resources.files(__resources__)/"added_fields.csv")
-            added_fields_file_all = added_fields_file[-2:]
-            added_fields_file_all.insert(0,"table",j)
-            v = stacklist[f"variables_{dpnum}"]
-            isplit = v.index[v["table"]==j].tolist()[-1]
-            v1 = v.iloc[:isplit]
-            v2 = v.iloc[isplit+1:]
-            v = pd.concat([v1, added_fields_file_all, v2]).reset_index(drop=True)
-            stacklist[f"variables_{dpnum}"] = v
+            added_fields = pd.read_csv(added_fields_file, index_col=None)
+            added_fields_all = added_fields[-2:]
+            added_fields_all.insert(0,"table",j)
+            vlist[j] = pd.concat([vlist[j], added_fields_all], ignore_index=True)
         
         # for IS products, append domainID, siteID, HOR, VER
         if not "siteID" in pdat.columns.to_list():
@@ -632,35 +628,41 @@ def stack_data_files_parallel(folder,
                 # sort the table by site, then HOR/VER, then date, all ascending
                 pdat.sort_values(by=['siteID','horizontalPosition','verticalPosition','endDateTime'],
                                  ascending=[True,True,True,True],
-                                 inplace=True)
+                                 inplace=True, ignore_index=True)
                 
                 # append fields to variables file
                 if f"variables_{dpnum}" in stacklist.keys():
-                    added_fields_file_IS = added_fields_file[0:4]
-                    added_fields_file_IS.insert(0,"table",j)
-                    v = stacklist[f"variables_{dpnum}"]
-                    isplit = v.index[v["table"]==j].tolist()[0]
-                    v1 = v.iloc[:isplit-1]
-                    v2 = v.iloc[isplit:]
-                    v = pd.concat([v1, added_fields_file_IS, v2]).reset_index(drop=True)
-                    stacklist[f"variables_{dpnum}"] = v
+                    added_fields_IS = added_fields[0:4]
+                    added_fields_IS.insert(0,"table",j)
+                    vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
+                    
         else:
             # for OS tables, sort by site and date
-            if 'collectDate' in pdat.columns.to_list():
+            pcols = pdat.columns.to_list()
+            datevar = None
+            if 'collectDate' in pcols:
                 datevar = 'collectDate'
             else:
-                if 'endDate' in pdat.columns.to_list():
+                if 'endDate' in pcols:
                     datevar = 'endDate'
                 else:
-                    if 'startDate' in pdat.columns.to_list():
+                    if 'startDate' in pcols:
                         datevar = 'startDate'
                     else:
-                        if 'date' in pdat.columns.to_list():
+                        if 'date' in pcols:
                             datevar = 'date'
+                        else:
+                            if 'startDateTime' in pcols:
+                                datevar = 'startDateTime'
             # sort the table by site then date, all ascending
-            pdat.sort_values(by=['siteID',datevar],
-                             ascending=[True,True],
-                             inplace=True)
+            if datevar is None:
+                pdat.sort_values(by=['siteID'],
+                                 ascending=[True],
+                                 inplace=True, ignore_index=True)
+            else:
+                pdat.sort_values(by=['siteID',datevar],
+                                 ascending=[True,True],
+                                 inplace=True, ignore_index=True)
         
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
@@ -671,6 +673,9 @@ def stack_data_files_parallel(folder,
 
         # add table to list
         stacklist[j] = pdat
+        
+    # final variables file
+    stacklist[f"variables_{dpnum}"] = pd.concat(vlist, ignore_index=True)
         
     # token omitted here since it's not otherwise used in stacking functions
     # consider a runLocal option, like in R stackEddy()

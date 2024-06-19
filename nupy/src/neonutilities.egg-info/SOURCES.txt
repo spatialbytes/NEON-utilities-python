@@ -13,6 +13,7 @@ src/neonutilities.egg-info/SOURCES.txt
 src/neonutilities.egg-info/dependency_links.txt
 src/neonutilities.egg-info/requires.txt
 src/neonutilities.egg-info/top_level.txt
+src/neonutilities/__resources__/added_fields.csv
 src/neonutilities/__resources__/chem_bundles.csv
 src/neonutilities/__resources__/other_bundles.csv
 src/neonutilities/__resources__/science_review_variables.csv
