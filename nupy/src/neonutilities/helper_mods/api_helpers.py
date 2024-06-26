@@ -349,6 +349,7 @@ def get_tab_urls(url_set,
     
     # initiate file lists
     flnm=[]
+    flpth=[]
     z=[]
     sz=[]
     rel=[]
@@ -402,18 +403,26 @@ def get_tab_urls(url_set,
             continue
         
         # make separate lists of variables, readme and sensor positions
-        varfi=[f for f in m_di["data"]["files"] if vr.search(f["name"])]
-        rdmei=[f for f in m_di["data"]["files"] if rdr.search(f["name"])]
-        spi=[f for f in m_di["data"]["files"] if spr.search(f["name"])]
+        varfi = [f for f in m_di["data"]["files"] if vr.search(f["name"])]
+        rdmei = [f for f in m_di["data"]["files"] if rdr.search(f["name"])]
+        spi = [f for f in m_di["data"]["files"] if spr.search(f["name"])]
         
         varf.append(varfi)
         rdme.append(rdmei)
         if len(spi)>0:
             sp.append(spi)
             
+        # get zip file url and file name
+        zi = [u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        h = get_api_headers(api_url=zi[0], token=token)
+        fltp = re.sub(pattern='"', repl="", 
+                    string=h.headers["content-disposition"])
+        flpthit = re.sub(pattern="inline; filename=", repl="", string=fltp)
+        flpthi = re.sub(pattern=".zip", repl="/", string=flpthit)
+
         # subset by averaging interval, and include SRF files
         if timeindex!="all":
-            flnmi=[fl["name"] for fl in flsp if tt.search(fl["name"])]
+            flnmi=[flpthi+fl["name"] for fl in flsp if tt.search(fl["name"])]
             flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
             zi=[fl["url"] for fl in flsp if tt.search(fl["name"])]
             
@@ -424,7 +433,7 @@ def get_tab_urls(url_set,
         
         # subset by table
         if tabl!="all":
-            flnmi=[fl["name"] for fl in flsp if tb.search(fl["name"])]
+            flnmi=[flpthi+fl["name"] for fl in flsp if tb.search(fl["name"])]
             flszi=[fl["size"] for fl in flsp if tb.search(fl["name"])]
             zi=[fl["url"] for fl in flsp if tb.search(fl["name"])]
             
@@ -435,6 +444,7 @@ def get_tab_urls(url_set,
                             
         # return url, file name, file size, and release
         flnm.append(flnmi)
+        flpth.append(flpthi)
         z.append(zi)
         sz.append(flszi)
         rel.append(m_di["data"]["release"])
@@ -443,7 +453,7 @@ def get_tab_urls(url_set,
     try:
         varf=sum(varf, [])
         varfl=get_recent(varf, "variables")
-        flnm.append([fl["name"] for fl in varfl])
+        flnm.append([flpthi+fl["name"] for fl in varfl])
         z.append([fl["url"] for fl in varfl])
         sz.append([fl["size"]for fl in varfl])
         #rel.append() # do we need a value here?
@@ -453,7 +463,7 @@ def get_tab_urls(url_set,
     try:
         rdme=sum(rdme, [])
         rdfl=get_recent(rdme, "readme")
-        flnm.append([fl["name"] for fl in rdfl])
+        flnm.append([flpthi+fl["name"] for fl in rdfl])
         z.append([fl["url"] for fl in rdfl])
         sz.append([fl["size"] for fl in rdfl])
         #rel.append()
@@ -470,7 +480,7 @@ def get_tab_urls(url_set,
         try:
             for s in sites:
                 spfl=get_recent(sp, s)
-                flnm.append([fl["name"] for fl in spfl])
+                flnm.append([flpthi+fl["name"] for fl in spfl])
                 z.append([fl["url"] for fl in spfl])
                 sz.append([fl["size"] for fl in spfl])
                 #rel.append()
@@ -481,7 +491,7 @@ def get_tab_urls(url_set,
     z=sum(z, [])
     flnm=sum(flnm, [])
     sz=sum(sz, [])
-    tbfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
+    tbfiles=dict(flnm=flnm, flpth=flpth, z=z, sz=sz, rel=rel)
         
     # provisional message
     if(provflag):

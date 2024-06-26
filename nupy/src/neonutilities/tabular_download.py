@@ -283,6 +283,11 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     if not os.path.exists(outpath):
         os.makedirs(outpath)
+        
+    if timeindex!="all" or tabl!="all":
+        for f in durls["flpth"]:
+            if not os.path.exists(outpath+f):
+                os.makedirs(outpath+f)
     
     # download data from each url
     download_urls(url_set=durls, outpath=outpath,
