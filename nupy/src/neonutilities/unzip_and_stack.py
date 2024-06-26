@@ -796,10 +796,30 @@ def stack_by_table(filepath,
         if any(".zip" in file for file in files):
             unzip_zipfile_parallel(zippath = filepath)
         stackpath = filepath
-            
+                    
     # Stack the files
     stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
         
+    # delete input files
+    # this doesn't work on download by file (timeindex= or tabl=)
+    # in R, using temp directory we just delete the whole thing at the end in the loadByProduct() case
+    # here, need to figure out if you're in that scenario or not
+    if not save_unzipped_files:
+        ufl = glob.glob(stackpath+"/**.*/*", recursive=True)
+        for fl in ufl:
+            try:
+                os.remove(fl)
+            except:
+                pass
+        dirlist = glob.glob(stackpath+"/*",recursive=True)
+        for d in dirlist:
+            try:
+                os.rmdir(d)
+            except:
+                pass
+        if os.listdir(stackpath) == []:
+            os.rmdir(stackpath)
+    
     # write files to path if requested
     if savepath == "envt":
         return stackedlist
