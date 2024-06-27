@@ -402,16 +402,6 @@ def get_tab_urls(url_set,
             logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
         
-        # make separate lists of variables, readme and sensor positions
-        varfi = [f for f in m_di["data"]["files"] if vr.search(f["name"])]
-        rdmei = [f for f in m_di["data"]["files"] if rdr.search(f["name"])]
-        spi = [f for f in m_di["data"]["files"] if spr.search(f["name"])]
-        
-        varf.append(varfi)
-        rdme.append(rdmei)
-        if len(spi)>0:
-            sp.append(spi)
-            
         # get zip file url and file name
         zi = [u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
         h = get_api_headers(api_url=zi[0], token=token)
@@ -420,7 +410,23 @@ def get_tab_urls(url_set,
         flpthit = re.sub(pattern="inline; filename=", repl="", string=fltp)
         flpthi = re.sub(pattern=".zip", repl="/", string=flpthit)
 
-        # subset by averaging interval, and include SRF files
+        # make separate lists of variables, readme and sensor positions
+        varfi = [f for f in m_di["data"]["files"] if vr.search(f["name"])]
+        rdmei = [f for f in m_di["data"]["files"] if rdr.search(f["name"])]
+        spi = [f for f in m_di["data"]["files"] if spr.search(f["name"])]
+        for f in varfi:
+            f["name"] = flpthi+f["name"]
+        for f in rdmei:
+            f["name"] = flpthi+f["name"]
+        
+        varf.append(varfi)
+        rdme.append(rdmei)
+        if len(spi)>0:
+            for f in spi:
+                f["name"] = flpthi+f["name"]
+            sp.append(spi)
+
+        # subset by averaging interval
         if timeindex!="all":
             flnmi=[flpthi+fl["name"] for fl in flsp if tt.search(fl["name"])]
             flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
@@ -453,20 +459,18 @@ def get_tab_urls(url_set,
     try:
         varf=sum(varf, [])
         varfl=get_recent(varf, "variables")
-        flnm.append([flpthi+fl["name"] for fl in varfl])
+        flnm.append([fl["name"] for fl in varfl])
         z.append([fl["url"] for fl in varfl])
         sz.append([fl["size"]for fl in varfl])
-        #rel.append() # do we need a value here?
     except:
         pass
     
     try:
         rdme=sum(rdme, [])
         rdfl=get_recent(rdme, "readme")
-        flnm.append([flpthi+fl["name"] for fl in rdfl])
+        flnm.append([fl["name"] for fl in rdfl])
         z.append([fl["url"] for fl in rdfl])
         sz.append([fl["size"] for fl in rdfl])
-        #rel.append()
     except:
         pass
     
@@ -480,10 +484,9 @@ def get_tab_urls(url_set,
         try:
             for s in sites:
                 spfl=get_recent(sp, s)
-                flnm.append([flpthi+fl["name"] for fl in spfl])
+                flnm.append([fl["name"] for fl in spfl])
                 z.append([fl["url"] for fl in spfl])
                 sz.append([fl["size"] for fl in spfl])
-                #rel.append()
         except:
             pass
 

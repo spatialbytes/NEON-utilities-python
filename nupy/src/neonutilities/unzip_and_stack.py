@@ -427,14 +427,7 @@ def stack_data_files_parallel(folder,
     
     # Get filenames with full path
     filepaths = find_datatables(folder = folder,f_names=True)
-    
-    # Get release file, if it exists
-    relfl = [i for i in filepaths if "release_status" in i]
-    if len(relfl) == 1:
-        reltab = pd.read_csv(relfl[0], encoding='utf-8')
-    else:
-        reltab = None    
-        
+            
     # dictionary for outputs
     stacklist = {}
 
@@ -473,18 +466,6 @@ def stack_data_files_parallel(folder,
         return None
         
     # if there is one or more than one file, stack files
-    n = 0
-    m = 0
-    # # I think we can get rid of this section
-    # if len(datafls) > 1:
-    #     stacked_files_folder = os.path.join(folder, "stackedFiles")
-    #     if not os.path.exists(stacked_files_folder):
-    #         os.makedirs(stacked_files_folder) 
-    # # if there is just one data file (and thus one table name), copy file into stackedFiles folder
-    # if len(datafls) == 1:
-    #     shutil.copy(list(datafls.values())[0], stacked_files_folder)
-    #     m = 0
-    #     n = 1   
         
     # get table types
     table_types=find_table_types(filenames)
@@ -580,21 +561,15 @@ def stack_data_files_parallel(folder,
         cols.append("__filename")
         dattab = dat.to_table(columns=cols)
         pdat = dattab.to_pandas()
-        
-        # append publication date
-        pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
-        pubval = [pubr.search(p).group(0) for p in pdat["__filename"]]
-        pdat = pdat.assign(publicationDate = pubval)
-        
-        # # append publication date and release
-        # # this doesn't work on download by file (specific table or averaging interval) because all you have is the file name
-        # pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
-        # pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
-        # pubval = [re.sub("\\..*","",s) for s in pubrelval]
-        # relval = [re.sub(".*\\.","",s) for s in pubrelval]
-        # relval = [re.sub("\\/","",s) for s in relval]
-        # pdat = pdat.assign(publicationDate = pubval,
-        #                    release = relval)
+                
+        # append publication date and release
+        pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
+        pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
+        pubval = [re.sub("\\..*","",s) for s in pubrelval]
+        relval = [re.sub(".*\\.","",s) for s in pubrelval]
+        relval = [re.sub("\\/","",s) for s in relval]
+        pdat = pdat.assign(publicationDate = pubval,
+                            release = relval)
         
         # append fields to variables file
         if f"variables_{dpnum}" in stacklist.keys():
@@ -801,9 +776,6 @@ def stack_by_table(filepath,
     stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
         
     # delete input files
-    # this doesn't work on download by file (timeindex= or tabl=)
-    # in R, using temp directory we just delete the whole thing at the end in the loadByProduct() case
-    # here, need to figure out if you're in that scenario or not
     if not save_unzipped_files:
         ufl = glob.glob(stackpath+"/**.*/*", recursive=True)
         for fl in ufl:
