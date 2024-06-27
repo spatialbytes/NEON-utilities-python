@@ -16,6 +16,7 @@ from tqdm import tqdm
 import shutil
 from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
+from .citation import get_citation
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -562,14 +563,18 @@ def stack_data_files_parallel(folder,
         dattab = dat.to_table(columns=cols)
         pdat = dattab.to_pandas()
                 
-        # append publication date and release
+        # append publication date
+        pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
+        pubval = [pubr.search(os.path.basename(p)).group(0) for p in pdat["__filename"]]
+        pdat = pdat.assign(publicationDate = pubval)
+        
+        # append release tag
         pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
         pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
-        pubval = [re.sub("\\..*","",s) for s in pubrelval]
         relval = [re.sub(".*\\.","",s) for s in pubrelval]
         relval = [re.sub("\\/","",s) for s in relval]
-        pdat = pdat.assign(publicationDate = pubval,
-                            release = relval)
+        pdat = pdat.assign(release = relval)
+        releases.append(list(set(relval)))
         
         # append fields to variables file
         if f"variables_{dpnum}" in stacklist.keys():
@@ -652,9 +657,25 @@ def stack_data_files_parallel(folder,
     # final variables file
     stacklist[f"variables_{dpnum}"] = pd.concat(vlist, ignore_index=True)
         
+    # get issue log table
     # token omitted here since it's not otherwise used in stacking functions
     # consider a runLocal option, like in R stackEddy()
     stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpID=dpID, token=None)
+    
+    # get relevant citation(s)
+    releases = sum(releases, [])
+    releases = list(set(releases))
+    if "PROVISIONAL" in releases:
+        try:
+            stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpID=dpID, release="PROVISIONAL")
+        except:
+            pass
+    relr = re.compile("RELEASE-20[0-9]{2}")
+    rs = [relr.search(r).group(0) for r in releases if relr.search(r)]
+    if len(rs)==1:
+        stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpID=dpID, release=rs[0])
+    if len(rs)>1:
+        logging.info("Multiple data releases were stacked together. This is not appropriate, check your input data.")
     
     return stacklist
     
