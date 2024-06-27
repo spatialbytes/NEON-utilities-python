@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import os
 
 def get_recent(fl_set, fltype):
     """
@@ -31,7 +32,7 @@ def get_recent(fl_set, fltype):
     
     # get max date stamp in subset
     pdater=re.compile("[0-9]{8}T[0-9]{6}Z")
-    flvar=[pdater.search(f["name"]).group(0) for f in flt]
+    flvar=[pdater.search(os.path.basename(f["name"])).group(0) for f in flt]
     
     if len(flvar)==0:
         return None
@@ -40,7 +41,7 @@ def get_recent(fl_set, fltype):
     
     # get url matching max date stamp
     maxr=re.compile(recdate)
-    flmax=[f for f in flt if maxr.search(f["name"])]
+    flmax=[f for f in flt if maxr.search(os.path.basename(f["name"]))]
     
     return [flmax[0]]
 

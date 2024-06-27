@@ -152,14 +152,14 @@ def get_recent_publication(filepaths):
     """ 
     
     # extract the publication dates from the file paths
-    pub_dates = [re.search(r'20\d{2}\d{2}\d{2}', f) for f in filepaths]
+    pub_dates = [re.search(r'20\d{2}\d{2}\d{2}', os.path.basename(f)) for f in filepaths]
     pub_dates = [m.group(0) for m in pub_dates if m is not None]
 
     # get the most recent publication date
     recent_pub_date = max(pub_dates)
 
     # get the file paths that include the most recent publication date
-    recent_files = [f for f in filepaths if recent_pub_date in f]
+    recent_files = [f for f in filepaths if recent_pub_date in os.path.basename(f)]
 
     return recent_files
 
