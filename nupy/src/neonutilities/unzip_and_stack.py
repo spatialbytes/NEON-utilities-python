@@ -512,6 +512,36 @@ def stack_data_files_parallel(folder,
         cc = pd.read_csv(ccpath, sep=',')
         stacklist[f"categoricalCodes_{dpnum}"] = cc
         
+    # get readme file
+    readmefiles = glob.glob(os.path.join(folder, '**', '*.txt'), recursive=True)
+    if any(re.search('readme.20', path) for path in readmefiles):
+        readmepath = get_recent_publication([path for path in readmefiles if "readme.20" in path])[0]
+        rd = pd.read_table(readmepath, delimiter='\t', header=None)
+        rd = rd[~rd[0].str.contains("Date-Time")]
+        if len(tables) > 0:
+            # replace query specific text
+            dpackind = rd[0].str.contains('CONTENTS').idxmax()
+            rd.loc[dpackind + 2, 0] = f"This data product contains up to {len(tables)} data tables:"
+            rd.loc[dpackind + 3: dpackind + 3 + len(tables)-1, 0] = tables
+            rd.loc[dpackind + 3 + len(tables), 0] = "If data are unavailable for the particular sites and dates queried, some tables may be absent."
+            qind = rd[0].str.contains('QUERY').idxmax()
+            downpackind = rd[0].str.contains('Basic download package').idxmax()
+            
+            # Remove specific rows
+            remove_indices = list(range(qind, dpackind)) + list(range(dpackind + 4 + len(tables), downpackind))
+            remove_indices = [index for index in remove_indices if index in list(rd.index)]
+            rd = rd.drop(remove_indices)
+            
+            # add disclaimer
+            disclaimer = pd.DataFrame({0:["###################################",
+                                          "########### Disclaimer ############",
+                                          "This is the most recent readme publication based on all site-date combinations used during stackByTable.",
+                                          "Information specific to the query, including sites and dates, has been removed. The remaining content reflects general metadata for the data product.",
+                                          "##################################"]})
+            rd = pd.concat([disclaimer,rd], ignore_index=True)
+            
+            # save the readme
+            stacklist[f"readme_{dpnum}"] = rd    
         
     # stack tables according to types
     logging.info("Stacking data files")
