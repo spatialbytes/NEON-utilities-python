@@ -55,17 +55,19 @@ def read_table_neon(data_file,
             logging.info('var_file is not a variables file, or is missing critical values.')
             return
     
-    # Make a new colClass column
-    # Use to specify data types
-    v['colClass'] = None
-    v['colClass'][v.dataType == "real"] = "float"
-    v['colClass'][v.dataType == "integer"] = "int"
-    v['colClass'][v.dataType == "unsigned integer"] = "int"
-    v['colClass'][v.dataType == "signed integer"] = "int"
-    v['colClass'][v.dataType == "string"] = "str"
-    v['colClass'][v.dataType == "uri"] = "str"
-    v['colClass'][v.dataType == "dateTime"] = "datetime"
-    v = v[['table','fieldName','colClass']]
+    tableschema = get_variables(v)
+    
+    # # Make a new colClass column
+    # # Use to specify data types
+    # v['colClass'] = None
+    # v['colClass'][v.dataType == "real"] = "float"
+    # v['colClass'][v.dataType == "integer"] = "int"
+    # v['colClass'][v.dataType == "unsigned integer"] = "int"
+    # v['colClass'][v.dataType == "signed integer"] = "int"
+    # v['colClass'][v.dataType == "string"] = "str"
+    # v['colClass'][v.dataType == "uri"] = "str"
+    # v['colClass'][v.dataType == "dateTime"] = "datetime"
+    # v = v[['table','fieldName','colClass']]
     
     # Read in data file and check type
     if isinstance(data_file,str):
@@ -74,12 +76,12 @@ def read_table_neon(data_file,
         except:
             logging.info("Table read failed because data_file must be either a NEON variables table or a file path to a NEON variables table.")
             return
-    # else:
-    #     try:
-    #         d = pd.DataFrame(data_file)
-    #     except:
-    #         logging.info("Table read failed because data_file must be either a NEON variables table or a file path to a NEON variables table.")
-    #         return    
+    else:
+        try:
+            d = pd.DataFrame(data_file)
+        except:
+            logging.info("Table read failed because data_file must be either a NEON variables table or a file path to a NEON variables table.")
+            return    
     
     # Check that most fields have a corrsponding value in variables
     m = len(set(list(d.columns)) - set(list(v.fieldName)))
@@ -88,43 +90,32 @@ def read_table_neon(data_file,
         return
     if m > 4:
         logging.info(f"{m} fieldNames are present in data files but not in variables file. Unknown fields are read as character strings.")
-        
-    # fieldNames each have a unique dataType - don't need to match table    
-    for i in list(d.columns):
-        if i not in list(v.fieldName):
-            d[i] = d[i].astype("string")
-        else:
-            type = v.colClass[v.fieldName == i]
-            type=type[type.index[0]]
-            if type == 'str':
-                d[i] = d[i].astype("string")
-            if type == 'datetime':
-                d[i] = date_convert(d[i])
-            if type in ['int','float']:
-                d[i] = pd.to_numeric(d[i])
+    
+    # IN PROGRESS - LEFT OFF HERE #
+    
+    # read data and append file names
+    dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
+    cols = tableschema.names
+    cols.append("__filename")
+    dattab = dat.to_table(columns=cols)
+    pdat = dattab.to_pandas()    
+
+    
+    # # fieldNames each have a unique dataType - don't need to match table    
+    # for i in list(d.columns):
+    #     if i not in list(v.fieldName):
+    #         d[i] = d[i].astype("string")
+    #     else:
+    #         type = v.colClass[v.fieldName == i]
+    #         type=type[type.index[0]]
+    #         if type == 'str':
+    #             d[i] = d[i].astype("string")
+    #         if type == 'datetime':
+    #             d[i] = date_convert(d[i])
+    #         if type in ['int','float']:
+    #             d[i] = pd.to_numeric(d[i])
                 
     return d
-
-# Set inputs locally
-# data_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.asc_externalLabData.2023-09.expanded.20240115T155827Z.csv") 
-# var_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.variables.20240115T155827Z.csv")
-
-# # Test with csv
-# output_df = read_table_neon(data_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.asc_externalLabData.2023-09.expanded.20240115T155827Z.csv"), 
-#                             var_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.variables.20240115T155827Z.csv"))
-            
-# # Test with txt
-# output_df = read_table_neon(data_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.asc_externalLabData.2023-09.expanded.20240115T155827Z.csv"), 
-#                             var_file=pd.read_csv("C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.variables.20240115T155827Z.csv"))
-
-# # Test with file path
-# output_df = read_table_neon(data_file="C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.asc_externalLabData.2023-09.expanded.20240115T155827Z.csv", 
-#                             var_file="C:/Users/nickerson/Downloads/NEON.D13.COMO.DP1.20194.001.variables.20240115T155827Z.csv")
-
-# # Test with typo in file path
-# output_df = read_table_neon(data_file="C:/Users/mickerson/Downloads/NEON.D13.COMO.DP1.20194.001.asc_externalLabData.2023-09.expanded.20240115T155827Z.csv", 
-#                             var_file="C:/Users/mickerson/Downloads/NEON.D13.COMO.DP1.20194.001.variables.20240115T155827Z.csv")
-    
 
 def date_convert(dates):
     """
