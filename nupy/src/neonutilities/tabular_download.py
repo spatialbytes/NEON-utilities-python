@@ -17,11 +17,105 @@ from .helper_mods.metadata_helpers import convert_byte_size
 from . import __resources__
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
+
+def query_files(lst, dpID, site="all", startdate=None, enddate=None, 
+                package="basic", release="current", 
+                timeindex="all", tabl="all", 
+                include_provisional=False, token=None):
+    
+    """
+    Use the query endpoint to get a list of data package files from NEON.
+    
+    Parameters
+    --------
+    lst: Availability info from a call to the products endpoint of the NEON API.
+    dpID: Data product identifier in the form DP#.#####.###
+    site: One or more 4-letter NEON site codes
+    package: Download package to access, either basic or expanded
+    startdate: Earliest date of data to download, in the form YYYY-MM
+    enddate: Latest date of data to download, in the form YYYY-MM
+    release: Data release to download. Defaults to the most recent release.
+    include_provisional: Should Provisional data be returned in the download? Defaults to False.
+    token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
+
+    Return
+    --------
+    A list of paths to NEON data package files.
+    
+    Created on 10 Jul 2024
+
+    @author: Claire Lunch
+    """
+
+    adict = lst["data"]["siteCodes"]
+    
+    # check expanded package status
+    if package=="expanded":
+      if not lst["data"]["productHasExpanded"]:
+        logging.info("No expanded package found for " + dpID + ". Basic package downloaded instead.")
+        package = "basic"
+    
+    # if sites are not specified, get list of sites with data
+    if site=="all":
+      siteset=[]
+      for i in range(0, len(adict)):
+        siteset.append(adict[i].get("siteCode"))
+    else:
+      siteset=[site]
+    
+    # set up site query
+    sitesurllist = ["&siteCode=" + s for s in siteset]
+    sitesurl = "".join(sitesurllist)
+    
+    # if dates are not specified, get data date range
+    if startdate is None or enddate is None:
+      dateset=[]
+      for i in range(0, len(adict)):
+        dateset.append(adict[i].get("availableMonths"))
+      dateset = sum(dateset, [])
+      if startdate is None:
+        startdate = min(dateset)
+      if enddate is None:
+        enddate = max(dateset)
+    
+    # set up date query
+    dateurl = "&startDateMonth=" + startdate + "&endDateMonth=" + enddate
+    
+    # string for true/false include provisional
+    if include_provisional is True:
+      ipurl = "&includeProvisional=true"
+    else:
+      ipurl = "&includeProvisional=false"
+      
+    if release=="current":
+        relurl = ""
+    else:
+        relurl = "&release=" + release
+    
+    # construct full query url and run query
+    qurl = "http://data.neonscience.org/api/v0/data/query?productCode=" + dpID + sitesurl + dateurl + ipurl + "&package=" + package + relurl
+    qreq = get_api(api_url=qurl, token=token)
+    qdict = qreq.json()
+
+    # get file list from dictionary response
+    reldict = qdict.get("data")
+    pdict = reldict.get("releases")
+    flurl = []
+    for i in range(0, len(pdict)):
+      packdict = pdict[i].get("packages")
+      for j in range(0, len(packdict)):
+        fdict = packdict[j].get("files")
+        for k in range(0, len(fdict)):
+          flurl.append(fdict[k].get("url"))
+          
+    return(flurl)
+    
+
 def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
                     timeindex="all", tabl="all", check_size=True,
-                    include_provisional=False, progress=True,
-                    token=None, savepath=None):
+                    include_provisional=False, cloud_mode=False,
+                    progress=True, token=None, savepath=None):
     """
     Download product-site-month data package files from NEON.
     
@@ -34,6 +128,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     enddate: Latest date of data to download, in the form YYYY-MM
     release: Data release to download. Defaults to the most recent release.
     include_provisional: Should Provisional data be returned in the download? Defaults to False.
+    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, zips_by_product() returns a list of files rather than downloading them. Defaults to False.
     progress: Should the function display progress bars as it runs? Defaults to True
     token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
     savepath: File path of location to save data.
@@ -201,6 +296,23 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     if 'x-ratelimit-limit' in prodreq.headers and not token==None:
         if prodreq.headers.get('x-ratelimit-limit')==200:
             logging.info("API token was not recognized. Public rate limit applied.")
+    
+    # use query endpoint if cloud mode selected
+    if cloud_mode:
+        fls = query_files(lst=avail, dpID=dpID, site=site, 
+                          startdate=startdate, enddate=enddate,
+                          package=package, release=release, 
+                          timeindex=timeindex, tabl=tabl, 
+                          include_provisional=include_provisional,
+                          token=token)
+        return fls
+        # pass this to stack_data_files_parallel. then:
+        # filenames = [os.path.basename(f) for f in fls]
+        # filepaths = fls
+        # code from there to "read data and append file names" should work
+        # data read code block (4 lines) is the only part that should need an alternate version
+        # load_by_product needs alternate that reads to object instead of working directory
+
     
     # get data urls
     month_urls=[]
