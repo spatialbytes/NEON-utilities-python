@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import pyarrow as pa
 from pyarrow import dataset
+from pyarrow import fs
 import zipfile
 import platform
 import glob
@@ -384,7 +385,8 @@ def stack_data_files_parallel(folder,
                               package,
                               dpID,
                               n_cores=1,
-                              progress=True
+                              progress=True,
+                              cloud_mode=False
                               ):
     """
 
@@ -396,6 +398,7 @@ def stack_data_files_parallel(folder,
     dpID: Data product ID of product to stack.
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     progress: Should a progress bar be displayed?
+    cloud_mode: cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
     
     Return
     --------
@@ -422,12 +425,15 @@ def stack_data_files_parallel(folder,
     
     dpnum = dpID[4:9]
     
-    # Assuming 'folder' is defined
-    # Get filenames without full path
-    filenames = find_datatables(folder = folder,f_names=False)
-    
-    # Get filenames with full path
-    filepaths = find_datatables(folder = folder,f_names=True)
+    if cloud_mode:
+        filenames = [os.path.basename(f) for f in folder]
+        filepaths = folder
+    else:
+        # Get filenames without full path
+        filenames = find_datatables(folder = folder,f_names=False)
+        
+        # Get filenames with full path
+        filepaths = find_datatables(folder = folder,f_names=True)
             
     # dictionary for outputs
     stacklist = {}
@@ -587,7 +593,14 @@ def stack_data_files_parallel(folder,
             tablepaths = siterecent
         
         # read data and append file names
-        dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
+        if cloud_mode:
+            gcs = fs.GcsFileSystem(anonymous=True)
+            tablebuckets = [re.sub(pattern="https://storage.googleapis.com/", repl="", string=b) for b in tablepaths]
+            dat = dataset.dataset(source=tablebuckets, filesystem=gcs, format="csv", schema=tableschema)
+
+        else:
+            dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
+            
         cols = tableschema.names
         cols.append("__filename")
         dattab = dat.to_table(columns=cols)
@@ -718,7 +731,8 @@ def stack_by_table(filepath,
                    savepath=None, 
                    save_unzipped_files=False, 
                    n_cores=1,
-                   progress=True
+                   progress=True,
+                   cloud_mode=False
                    ):
     """
 
@@ -731,6 +745,7 @@ def stack_by_table(filepath,
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     progress: Should a progress bar be displayed?
+    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
     
     Return
     --------
@@ -748,18 +763,21 @@ def stack_by_table(filepath,
     """  
     
     # determine contents of filepath and unzip as needed
-    # Is the filepath input a zip file or an unzipped file?
-    if filepath[-4:] in ['.zip','.ZIP']:
-        folder = False
+    if cloud_mode:
+        files = filepath
     else:
-        folder = True
-    
-    # Get list of files nested (and/or zipped) in filepath
-    if not folder:
-        zip_ref = zipfile.ZipFile(filepath,'r')
-        files = zip_ref.namelist()
-    else:
-        files = glob.glob(filepath+'/**',recursive=True)
+        # Is the filepath input a zip file or an unzipped file?
+        if filepath[-4:] in ['.zip','.ZIP']:
+            folder = False
+        else:
+            folder = True
+        
+        # Get list of files nested (and/or zipped) in filepath
+        if not folder:
+            zip_ref = zipfile.ZipFile(filepath,'r')
+            files = zip_ref.namelist()
+        else:
+            files = glob.glob(filepath+'/**',recursive=True)
         
     # Error handling if there are no standardized NEON Portal data tables in the list of files
     if not any(re.search(r'NEON.D[0-9]{2}.[A-Z]{4}.',x) for x in files):
@@ -811,37 +829,42 @@ def stack_by_table(filepath,
         logging.info("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks and/or using a high-performance system.")
     
     # If all checks pass, unzip and stack files
+    if cloud_mode:
+        stackedlist = stack_data_files_parallel(folder=files, package=package, 
+                                                dpID=dpID, cloud_mode=True)
     
-    # If the filepath is a zip file
-    if not folder:
-        unzip_zipfile_parallel(zippath = filepath)
-        stackpath = filepath[:-4]
-            
-    # If the filepath is a directory
-    if folder:
-        if any(".zip" in file for file in files):
+    else:
+    
+        # If the filepath is a zip file
+        if not folder:
             unzip_zipfile_parallel(zippath = filepath)
-        stackpath = filepath
+            stackpath = filepath[:-4]
+                
+        # If the filepath is a directory
+        if folder:
+            if any(".zip" in file for file in files):
+                unzip_zipfile_parallel(zippath = filepath)
+            stackpath = filepath
                     
-    # Stack the files
-    stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
-        
-    # delete input files
-    if not save_unzipped_files:
-        ufl = glob.glob(stackpath+"/**.*/*", recursive=True)
-        for fl in ufl:
-            try:
-                os.remove(fl)
-            except:
-                pass
-        dirlist = glob.glob(stackpath+"/*",recursive=True)
-        for d in dirlist:
-            try:
-                os.rmdir(d)
-            except:
-                pass
-        if os.listdir(stackpath) == []:
-            os.rmdir(stackpath)
+        # Stack the files
+        stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
+            
+        # delete input files
+        if not save_unzipped_files:
+            ufl = glob.glob(stackpath+"/**.*/*", recursive=True)
+            for fl in ufl:
+                try:
+                    os.remove(fl)
+                except:
+                    pass
+            dirlist = glob.glob(stackpath+"/*",recursive=True)
+            for d in dirlist:
+                try:
+                    os.rmdir(d)
+                except:
+                    pass
+            if os.listdir(stackpath) == []:
+                os.rmdir(stackpath)
     
     # write files to path if requested
     if savepath == "envt":
@@ -866,8 +889,8 @@ def stack_by_table(filepath,
 def load_by_product(dpID, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
                     timeindex="all", tabl="all", check_size=True,
-                    include_provisional=False, progress=True,
-                    token=None):
+                    include_provisional=False, cloud_mode=False,
+                    progress=True, token=None):
     """
     Download product-site-month data package files from NEON, stack, and load to the environment.
     
@@ -880,6 +903,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
     enddate: Latest date of data to download, in the form YYYY-MM
     release: Data release to download. Defaults to the most recent release.
     include_provisional: Should Provisional data be returned in the download? Defaults to False.
+    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? Should only be used if the destination location is in the cloud. Defaults to False.
     progress: Should the function display progress bars as it runs? Defaults to True
     token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
 
@@ -902,21 +926,37 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
     
     savepath = os.getcwd()
     
-    # let the other functions handle the error messages
-    # right now this will clutter up the user's working directory with files - need to get saveUnzippedFiles=False working
-    zips_by_product(dpID=dpID, site=site, 
-                    startdate=startdate, enddate=enddate,
-                    package=package, release=release,
-                    timeindex=timeindex, tabl=tabl,
-                    check_size=check_size, 
-                    include_provisional=include_provisional,
-                    progress=progress, token=token,
-                    savepath=savepath)
+    if cloud_mode:
+        flist = zips_by_product(dpID=dpID, site=site, 
+                        startdate=startdate, enddate=enddate,
+                        package=package, release=release,
+                        timeindex=timeindex, tabl=tabl,
+                        check_size=check_size, 
+                        include_provisional=include_provisional,
+                        cloud_mode=True,
+                        progress=progress, token=token,
+                        savepath=savepath)
+        
+        outlist = stack_by_table(filepath=flist, savepath="envt",
+                                 cloud_mode=True,
+                                 save_unzipped_files=False, 
+                                 progress=progress)
+        
+    else:
     
-    stackpath = savepath+"/filesToStack"+dpID[4:9]+"/"
-    
-    outlist = stack_by_table(filepath=stackpath, savepath="envt",
-                             save_unzipped_files=False, progress=progress)
+        zips_by_product(dpID=dpID, site=site, 
+                        startdate=startdate, enddate=enddate,
+                        package=package, release=release,
+                        timeindex=timeindex, tabl=tabl,
+                        check_size=check_size, 
+                        include_provisional=include_provisional,
+                        progress=progress, token=token,
+                        savepath=savepath)
+        
+        stackpath = savepath+"/filesToStack"+dpID[4:9]+"/"
+        
+        outlist = stack_by_table(filepath=stackpath, savepath="envt",
+                                 save_unzipped_files=False, progress=progress)
     
     return outlist
 

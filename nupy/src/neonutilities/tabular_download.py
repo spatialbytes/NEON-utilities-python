@@ -306,103 +306,100 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                           include_provisional=include_provisional,
                           token=token)
         return fls
-        # pass this to stack_data_files_parallel. then:
-        # filenames = [os.path.basename(f) for f in fls]
-        # filepaths = fls
-        # code from there to "read data and append file names" should work
         # data read code block (4 lines) is the only part that should need an alternate version
-        # load_by_product needs alternate that reads to object instead of working directory
+        # ok, might need to modify lines that get individual files - can pd.read_csv read a url?
 
+    else:
     
-    # get data urls
-    month_urls=[]
-    for i in range(0, len(avail["data"]["siteCodes"])):
-        month_urls.append(avail["data"]["siteCodes"][i]["availableDataUrls"])
-    
-    # check for no results
-    if len(month_urls)==0:
-        logging.info("There are no data matching the search criteria.")
-        return
-    
-    # un-nest list
-    month_urls=sum(month_urls, [])
+        # get data urls
+        month_urls=[]
+        for i in range(0, len(avail["data"]["siteCodes"])):
+            month_urls.append(avail["data"]["siteCodes"][i]["availableDataUrls"])
+        
+        # check for no results
+        if len(month_urls)==0:
+            logging.info("There are no data matching the search criteria.")
+            return
+        
+        # un-nest list
+        month_urls=sum(month_urls, [])
+                
+        # subset by site
+        if siter!=["all"]:
+            site_urls=[]
+            for si in siter:
+                se=re.compile(si)
+                month_sub=[s for s in month_urls if se.search(s)]
+                site_urls.append(month_sub)
+            site_urls=sum(site_urls, [])
+        else:
+            site_urls=month_urls
+        
+        # check for no results
+        if len(site_urls)==0:
+            logging.info("There are no data at the selected sites.")
+            return
+        
+        # subset by start date
+        if startdate!=None:
+            ste=re.compile("20[0-9]{2}-[0-9]{2}")
+            start_urls=[st for st in site_urls if ste.search(st).group(0)>=startdate]
+        else:
+            start_urls=site_urls
             
-    # subset by site
-    if siter!=["all"]:
-        site_urls=[]
-        for si in siter:
-            se=re.compile(si)
-            month_sub=[s for s in month_urls if se.search(s)]
-            site_urls.append(month_sub)
-        site_urls=sum(site_urls, [])
-    else:
-        site_urls=month_urls
+        # check for no results
+        if len(start_urls)==0:
+            logging.info("There are no data at the selected date(s).")
+            return
     
-    # check for no results
-    if len(site_urls)==0:
-        logging.info("There are no data at the selected sites.")
-        return
-    
-    # subset by start date
-    if startdate!=None:
-        ste=re.compile("20[0-9]{2}-[0-9]{2}")
-        start_urls=[st for st in site_urls if ste.search(st).group(0)>=startdate]
-    else:
-        start_urls=site_urls
+        # subset by end date
+        if enddate!=None:
+            ete=re.compile("20[0-9]{2}-[0-9]{2}")
+            end_urls=[et for et in start_urls if ete.search(et).group(0)<=enddate]
+        else:
+            end_urls=start_urls
         
-    # check for no results
-    if len(start_urls)==0:
-        logging.info("There are no data at the selected date(s).")
-        return
-
-    # subset by end date
-    if enddate!=None:
-        ete=re.compile("20[0-9]{2}-[0-9]{2}")
-        end_urls=[et for et in start_urls if ete.search(et).group(0)<=enddate]
-    else:
-        end_urls=start_urls
-    
-    # check for no results
-    if len(end_urls)==0:
-        logging.info("There are no data at the selected date(s).")
-        return
-    
-    # if downloading entire site-months, pass to get_zip_urls to query each month for url
-    if timeindex=="all" and tabl=="all":
-        durls=get_zip_urls(url_set=end_urls, package=package, release=release,
-                             include_provisional=include_provisional, 
-                             token=token, progress=progress)
-    else:
-        # if downloading by table or averaging interval, pass to get_tab_urls
-        durls=get_tab_urls(url_set=end_urls, package=package, release=release,
-                             include_provisional=include_provisional, 
-                             timeindex=timeindex, tabl=tabl,
-                             token=token, progress=progress)
-    
-    # check download size
-    download_size=convert_byte_size(sum(durls["sz"]))
-    if check_size:
-        if input(f"Continuing will download {len(durls['z'])} files totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
-            print("Download halted.")
-            return None
-    else:
-        logging.info(f"Downloading {len(durls['z'])} files totaling approximately {download_size}.")
-    
-    # set up folder to save to
-    if savepath is None:
-        savepath=os.getcwd()
-    outpath=savepath+"/filesToStack"+dpID[4:9]+"/"
-    
-    if not os.path.exists(outpath):
-        os.makedirs(outpath)
+        # check for no results
+        if len(end_urls)==0:
+            logging.info("There are no data at the selected date(s).")
+            return
         
-    if timeindex!="all" or tabl!="all":
-        for f in durls["flpth"]:
-            if not os.path.exists(outpath+f):
-                os.makedirs(outpath+f)
-    
-    # download data from each url
-    download_urls(url_set=durls, outpath=outpath,
-                  token=token, progress=progress)
-    
-    return None
+        # if downloading entire site-months, pass to get_zip_urls to query each month for url
+        if timeindex=="all" and tabl=="all":
+            durls=get_zip_urls(url_set=end_urls, package=package, release=release,
+                                 include_provisional=include_provisional, 
+                                 token=token, progress=progress)
+        else:
+            # if downloading by table or averaging interval, pass to get_tab_urls
+            durls=get_tab_urls(url_set=end_urls, package=package, release=release,
+                                 include_provisional=include_provisional, 
+                                 timeindex=timeindex, tabl=tabl,
+                                 token=token, progress=progress)
+        
+        # check download size
+        download_size=convert_byte_size(sum(durls["sz"]))
+        if check_size:
+            if input(f"Continuing will download {len(durls['z'])} files totaling approximately {download_size}. Do you want to proceed? (y/n) ") != "y":
+                print("Download halted.")
+                return None
+        else:
+            logging.info(f"Downloading {len(durls['z'])} files totaling approximately {download_size}.")
+        
+        # set up folder to save to
+        if savepath is None:
+            savepath=os.getcwd()
+        outpath=savepath+"/filesToStack"+dpID[4:9]+"/"
+        
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+            
+        if timeindex!="all" or tabl!="all":
+            for f in durls["flpth"]:
+                if not os.path.exists(outpath+f):
+                    os.makedirs(outpath+f)
+        
+        # download data from each url
+        download_urls(url_set=durls, outpath=outpath,
+                      token=token, progress=progress)
+        
+        return None
