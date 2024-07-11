@@ -61,7 +61,10 @@ def query_files(lst, dpID, site="all", startdate=None, enddate=None,
       for i in range(0, len(adict)):
         siteset.append(adict[i].get("siteCode"))
     else:
-      siteset=[site]
+      if isinstance(site, list):
+          siteset = site
+      else:
+          siteset=[site]
     
     # set up site query
     sitesurllist = ["&siteCode=" + s for s in siteset]
@@ -306,8 +309,6 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
                           include_provisional=include_provisional,
                           token=token)
         return fls
-        # data read code block (4 lines) is the only part that should need an alternate version
-        # ok, might need to modify lines that get individual files - can pd.read_csv read a url?
 
     else:
     

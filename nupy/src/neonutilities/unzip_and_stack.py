@@ -486,7 +486,12 @@ def stack_data_files_parallel(folder,
     # get variables and validation files using the most recent publication date
     if any(re.search('variables.20', path) for path in filepaths):
         varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
-        v = pd.read_csv(varpath, sep=',')
+        if cloud_mode:
+            vp = dataset.dataset(varpath)
+            va = vp.to_table()
+            v = va.to_pandas()
+        else:
+            v = pd.read_csv(varpath, sep=',')
 
         # if science review flags are present but missing from variables file, add variables
         if "science_review_flags" not in list(v["table"]):
@@ -509,20 +514,35 @@ def stack_data_files_parallel(folder,
     # get validation file
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
-        val = pd.read_csv(valpath, sep=',')
+        if cloud_mode:
+            vp = dataset.dataset(valpath)
+            va = vp.to_table()
+            val = va.to_pandas()
+        else:
+            val = pd.read_csv(valpath, sep=',')
         stacklist[f"validation_{dpnum}"] = val
 
     # get categoricalCodes file
     if any(re.search('categoricalCodes', path) for path in filepaths):
         ccpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
-        cc = pd.read_csv(ccpath, sep=',')
+        if cloud_mode:
+            cp = dataset.dataset(ccpath)
+            ca = cp.to_table()
+            cc = ca.to_pandas()
+        else:
+            cc = pd.read_csv(ccpath, sep=',')
         stacklist[f"categoricalCodes_{dpnum}"] = cc
         
     # get readme file
     readmefiles = glob.glob(os.path.join(folder, '**', '*.txt'), recursive=True)
     if any(re.search('readme.20', path) for path in readmefiles):
         readmepath = get_recent_publication([path for path in readmefiles if "readme.20" in path])[0]
-        rd = pd.read_table(readmepath, delimiter='\t', header=None)
+        if cloud_mode:
+            rp = dataset.dataset(readmepath)
+            ra = rp.to_table()
+            rd = ra.to_pandas()
+        else:
+            rd = pd.read_table(readmepath, delimiter='\t', header=None)
         rd = rd[~rd[0].str.contains("Date-Time")]
         if len(tables) > 0:
             # replace query specific text
