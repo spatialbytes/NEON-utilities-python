@@ -488,28 +488,27 @@ def stack_data_files_parallel(folder,
     stacklist = {}
 
     
-    # handle per-sample tables separately ## ZN Note: Need to test specifically
-    # need to modify this to add to dictionary instead of writing to file
+    # handle per-sample (data frame) tables separately
     if dpID in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
         
         # stack frame files
-        print("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
+        logging.info("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
         
-        stacked_files_folder = os.path.join(folder, "stackedFiles")
-        if not os.path.exists(stacked_files_folder):
-            os.makedirs(stacked_files_folder)
-        
-        frm = pd.concat([pd.read_csv(f).assign(fileName=os.path.basename(f)) for f in framefiles], ignore_index=True)
-        
+        # no variables files for these, have to let arrow infer. problem?
+        fdat = dataset.dataset(source=framefiles,format="csv")
+        fdattab = fdat.to_table()
+        fpdat = fdattab.to_pandas()
+                
         if dpID == "DP1.20190.001":
-            frm.to_csv(os.path.join(stacked_files_folder, "rea_conductivityRawData.csv"), index=False)
+            stacklist["rea_conductivityRawData"] = fpdat
         elif dpID == "DP1.20193.001":
-            frm.to_csv(os.path.join(stacked_files_folder, "sbd_conductivityRawData.csv"), index=False)
+            stacklist["sbd_conductivityRawData"] = fpdat
         else:
-            frm.to_csv(os.path.join(stacked_files_folder, "per_sample.csv"), index=False)
+            stacklist["per_sample"] = fpdat
+    
     
     # make a dictionary, where filenames are the keys to the filepath values
     filelist = dict(zip(filenames, filepaths))
