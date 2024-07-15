@@ -406,7 +406,7 @@ def format_readme(readmetab,
     @author: Zachary Nickerson
     """  
     
-    rd = readmetab[~readmetab[0].str.contains("Date-Time")]
+    rd = readmetab
     if len(tables) > 0:
         # replace query specific text
         dpackind = rd[0].str.contains('CONTENTS').idxmax()
@@ -417,7 +417,7 @@ def format_readme(readmetab,
         downpackind = rd[0].str.contains('Basic download package').idxmax()
         
         # Remove specific rows
-        remove_indices = list(range(qind, dpackind)) + list(range(dpackind + 4 + len(tables), downpackind))
+        remove_indices = list(range(qind, dpackind)) + list(range(dpackind + 4 + len(tables), downpackind)) + rd.index[rd[0].str.contains("Date-Time")].tolist()
         remove_indices = [index for index in remove_indices if index in list(rd.index)]
         rd = rd.drop(remove_indices)
         
