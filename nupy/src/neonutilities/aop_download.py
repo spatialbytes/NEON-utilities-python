@@ -29,7 +29,7 @@ import re
 import pandas as pd
 import numpy as np
 import logging
-import tqdm
+from tqdm import tqdm
 # from progress.bar import Bar
 import importlib
 import importlib_resources
