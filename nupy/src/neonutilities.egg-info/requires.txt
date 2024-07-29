@@ -1,8 +1,0 @@
-datetime
-importlib-resources
-importlib.metadata
-pathlib
-pandas
-pyproj
-requests
-tqdm
