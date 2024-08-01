@@ -495,7 +495,9 @@ def by_file_aop(dpid,
     if "PROVISIONAL" in releases:
         try:
             cit = get_citation(dpID=dpid, release="PROVISIONAL")
-            cit.write(f"citation_{dpid}_PROVISIONAL.txt")
+            with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
+                      mode="w+", encoding="utf-8") as f:
+                f.write(cit)
         except:
             pass
 
@@ -506,7 +508,9 @@ def by_file_aop(dpid,
     if len(rel)==1:
         try:
             cit = get_citation(dpID=dpid, release=rel[0])
-            cit.write(f"citation_{dpid}_{rel[0]}.txt")
+            with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
+                      mode="w+", encoding="utf-8") as f:
+                f.write(cit)
         except:
             pass
 
@@ -869,7 +873,9 @@ def by_tile_aop(dpid,
     if "PROVISIONAL" in releases:
         try:
             cit = get_citation(dpID=dpid, release="PROVISIONAL")
-            cit.write(f"{download_path}/citation_{dpid}_PROVISIONAL.txt")
+            with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
+                      mode="w+", encoding="utf-8") as f:
+                f.write(cit)
         except:
             pass
 
@@ -880,7 +886,9 @@ def by_tile_aop(dpid,
     if len(rel)==1:
         try:
             cit = get_citation(dpID=dpid, release=rel[0])
-            cit.write(f"{download_path}/citation_{dpid}_{rel[0]}.txt")
+            with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
+                      mode="w+", encoding="utf-8") as f:
+                f.write(cit)
         except:
             pass
     
