@@ -869,7 +869,7 @@ def by_tile_aop(dpid,
     if "PROVISIONAL" in releases:
         try:
             cit = get_citation(dpID=dpid, release="PROVISIONAL")
-            cit.write(f"citation_{dpid}_PROVISIONAL.txt")
+            cit.write(f"{download_path}/citation_{dpid}_PROVISIONAL.txt")
         except:
             pass
 
@@ -880,7 +880,7 @@ def by_tile_aop(dpid,
     if len(rel)==1:
         try:
             cit = get_citation(dpID=dpid, release=rel[0])
-            cit.write(f"citation_{dpid}_{rel[0]}.txt")
+            cit.write(f"{download_path}/citation_{dpid}_{rel[0]}.txt")
         except:
             pass
     
