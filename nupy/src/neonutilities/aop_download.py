@@ -29,17 +29,18 @@ import re
 import pandas as pd
 import numpy as np
 import logging
+import os
 from tqdm import tqdm
-# from progress.bar import Bar
 import importlib
 import importlib_resources
 from . import __resources__
-from pathlib import Path
 from .helper_mods.api_helpers import get_api
+from .helper_mods.api_helpers import download_file
+from .get_issue_log import get_issue_log
+from .citation import get_citation
 
 # display the log info messages, only showing the message (otherwise it would print INFO:root:'message')
 logging.basicConfig(level=logging.INFO, format='%(message)s')
-# from tqdm import tqdm
 
 
 # check that token was used
@@ -119,60 +120,6 @@ def convert_byte_size(size_bytes):
         # print('Download size:', size_read)
     return size_read
 
-
-def download_file(url, save_path, token=None):
-    """
-    This function downloads a single file from a Google Cloud Storage URL to a user-specified directory.
-
-    Parameters
-    --------
-    url: str
-        The Google Cloud Storage URL where the file is stored.
-
-    save_path: str or pathlib.Path
-        The file location (path) where the file will be downloaded. It can be a string or a pathlib.Path object.
-
-    token: str, optional
-        User-specific API token generated within neon.datascience user accounts. If provided, it will be used for authentication.
-
-    Returns
-    --------
-    None
-
-    Raises
-    --------
-    None
-
-    Examples
-    --------
-    >>> download_file('https://storage.googleapis.com/neon-aop-products/2023/FullSite/D02/2023_SCBI_6/L3/DiscreteLidar/CanopyHeightModelGtif/NEON_D02_SCBI_DP3_741000_4301000_CHM.tif', '/path/to/save', 'my-api-token')
-    # This will download 'NEON_D02_SCBI_DP3_741000_4301000_CHM.tif' from the specified URL to '/path/to/save' directory using 'my-api-token' for authentication.
-
-    Notes
-    --------
-    The function creates the directory specified by 'save_path' if it does not exist. 
-    It also handles 'neon-publication' and 'neon-aop-products' in the URL differently to determine the file path. 
-    This is for downloading the readme.txt file which contains detailed information about the data package, issue logs, etc.
-    https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP3.30015.001/SCBI/20230601T000000--20230701T000000/basic/NEON.D02.SCBI.DP3.30015.001.readme.20240206T001418Z.txt
-    """
-    # print('url:', url)
-    file_name = url.split('/')[-1]
-    # print(f'downloading {file_name}')
-    if 'neon-publication' in url:
-        file_path = url.split('/')[-1]
-        # print(url)
-        # print(file_path)
-    else:  # elif 'neon-aop-products' in url:
-        file_path = url.split('neon-aop-products/')[1]
-    file_fullpath = save_path / file_path
-    file_fullpath.parent.mkdir(parents=True, exist_ok=True)
-    # print(f'downloading file to {file_fullpath}')
-    req = get_api(url, token)
-    with open(file_fullpath, 'wb') as f:
-        for chunk in req.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-    return
 
 # %%
 
@@ -365,6 +312,7 @@ def by_file_aop(dpid,
                 include_provisional=False,
                 check_size=True,
                 save_path=None,
+                chunk_size=1024,
                 token=None):
     """
     This function queries the API for AOP data by site, year, and product, and downloads all
@@ -395,6 +343,9 @@ def by_file_aop(dpid,
     save_path: str or pathlib.Path, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
         It can be a string or a pathlib.Path object.
+        
+    chunk_size: integer, optional
+        Size in bytes of chunk for chunked download. Defaults to 1024.
 
     token: str, optional
         User-specific API token generated within neon.datascience user accounts.
@@ -443,23 +394,9 @@ def by_file_aop(dpid,
     response = get_api(
         "http://data.neonscience.org/api/v0/products/" + dpid, token)
 
-  # # query the products endpoint for the product requested
-  # req <- getAPI(paste("http://data.neonscience.org/api/v0/products/", dpID, sep=""), token)
-  # avail <- jsonlite::fromJSON(httr::content(req, as="text", encoding="UTF-8"),
-  #                             simplifyDataFrame=TRUE, flatten=TRUE)
-
-# with the way get_api is currently written it returns None for a bad request
-# eg. https://data.neonscience.org/api/v0/products/DP3.30050.001
-# doesn't seem like this part below is actually doing anything in the R script either?
-# not sure what edge case it is handling
-# # error message if product not found
-#   if(!is.null(avail$error$status)) {
-#     stop(paste("No data found for product", dpID, sep=" "))
-#   }
-
     # exit function if response is None (eg. if no internet connection)
     if response is None:
-        print('Exiting function')
+        logging.info('No response from NEON API. Check internet connection')
         return
 
 #   # check that token was used
@@ -494,7 +431,7 @@ def by_file_aop(dpid,
         return
 
     # get file url dataframe for the available month urls
-    file_url_df, release = get_file_urls(site_year_urls, token=token)
+    file_url_df, releases = get_file_urls(site_year_urls, token=token)
 
     # get the number of files in the dataframe, if there are no files to download, return
     if len(file_url_df) == 0:
@@ -534,27 +471,45 @@ def by_file_aop(dpid,
             return
 
     # create folder in working directory to put files in
-    if save_path:
-        download_path = Path.cwd() / Path(save_path)
+    if save_path is not None:
+        download_path = save_path + "/" + dpid
     else:
-        download_path = Path.cwd()
+        download_path = os.getcwd() + "/" + dpid
     # print('download path', download_path)
-    download_path.mkdir(parents=True, exist_ok=True)
+    os.makedirs(download_path, exist_ok=True)
 
-    # serially download all files, with tdqm progress bar
+    # serially download all files, with progress bar
     files = list(file_url_df['url'])
     print(
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
-    # for file in tdqm(files): # if tqdm imports properly, this should work
-    for file in tqdm(files):  # if tqdm imports properly, this should work
-        download_file(file, download_path)
+    for file in tqdm(files):  
+        download_file(url=file, save_path=download_path,
+                      chunk_size=chunk_size, token=token)
+        
+    # download issue log table
+    ilog = get_issue_log(dpID=dpid, token=None)
+    ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
+    
+    # download citations
+    if "PROVISIONAL" in releases:
+        try:
+            cit = get_citation(dpID=dpid, release="PROVISIONAL")
+            cit.write(f"citation_{dpid}_PROVISIONAL.txt")
+        except:
+            pass
 
-    # with Bar('Download Progress...', max=len(files)) as bar:
-    #     for file in files:
-    #         download_file(file, download_path)
-    #         bar.next()
-    #     bar.finish()
+    rr = re.compile("RELEASE")
+    rel = [r for r in releases if rr.search(r)]
+    if len(rel)==0:
+        releases=releases
+    if len(rel)==1:
+        try:
+            cit = get_citation(dpID=dpid, release=rel[0])
+            cit.write(f"citation_{dpid}_{rel[0]}.txt")
+        except:
+            pass
+
 
     return
 
@@ -570,6 +525,7 @@ def by_tile_aop(dpid,
                 include_provisional=False,
                 check_size=True,
                 save_path=None,
+                chunk_size=1024,
                 token=None,
                 verbose=False):
     """
@@ -612,6 +568,9 @@ def by_tile_aop(dpid,
     save_path: str or pathlib.Path, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
         It can be a string or a pathlib.Path object.
+        
+    chunk_size: integer, optional
+        Size in bytes of chunk for chunked download. Defaults to 1024.
 
     token: str, optional
         User-specific API token generated within neon.datascience user accounts.
@@ -666,14 +625,14 @@ def by_tile_aop(dpid,
     try:
         easting = [float(e) for e in easting]
     except ValueError as e:
-        print(
+        logging.info(
             f'The easting is invalid, this is required as a number or numeric list format, eg. 732000 or [732000, 733000]')
         print(e)
 
     try:
         northing = [float(e) for e in northing]
     except ValueError as e:
-        print(
+        logging.info(
             f'The northing is invalid, this is required as a number or numeric list format, eg. 4713000 or [4713000, 4714000]')
         print(e)
 
@@ -686,7 +645,7 @@ def by_tile_aop(dpid,
     northing = [n for n in northing if not np.isnan(n)]
 
     if len(easting) != len(northing):
-        print(
+        logging.info(
             f'Easting and northing list lengths do not match, and/or contain null values. Cannot identify paired coordinates.')
         return
 
@@ -700,7 +659,7 @@ def by_tile_aop(dpid,
 
     # exit function if response is None (eg. if no internet connection)
     if response is None:
-        print('Exiting function.')
+        logging.info('No response from NEON API. Check internet connection')
         return
 
 #   # check that token was used
@@ -886,28 +845,45 @@ def by_tile_aop(dpid,
             return
 
     # create folder in working directory to put files in
-    if save_path:
-        download_path = Path(save_path) / dpid
+    if save_path is not None:
+        download_path = save_path + "/" + dpid
     else:
-        download_path = Path.cwd() / dpid
+        download_path = os.getcwd() + "/" + dpid
     # print('download path', download_path)
-    download_path.mkdir(parents=True, exist_ok=True)
+    os.makedirs(download_path, exist_ok=True)
 
     # serially download all files, with progress bar
     files = list(file_url_df_subset['url'])
     print(
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
-    for file in tqdm(files):  # if tqdm imports properly, this should work
-        download_file(file, download_path)
+    for file in tqdm(files):  
+        download_file(url=file, save_path=download_path,
+                      chunk_size=chunk_size, token=token)
+        
+    # download issue log table
+    ilog = get_issue_log(dpID=dpid, token=None)
+    ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
+    
+    # download citations
+    if "PROVISIONAL" in releases:
+        try:
+            cit = get_citation(dpID=dpid, release="PROVISIONAL")
+            cit.write(f"citation_{dpid}_PROVISIONAL.txt")
+        except:
+            pass
 
-    # otherwise, alternative using Bar (from progress package)
-    # with Bar('Download Progress...', max=len(files)) as bar:
-    #     for file in files:
-    #         download_file(file, download_path)
-    #         bar.next()
-    #     bar.finish()
-
+    rr = re.compile("RELEASE")
+    rel = [r for r in releases if rr.search(r)]
+    if len(rel)==0:
+        releases=releases
+    if len(rel)==1:
+        try:
+            cit = get_citation(dpID=dpid, release=rel[0])
+            cit.write(f"citation_{dpid}_{rel[0]}.txt")
+        except:
+            pass
+    
     return
 
 # request with suspended data (no data available)

@@ -3,6 +3,7 @@
 
 import requests
 import re
+import os
 import time
 import platform
 import importlib.metadata
@@ -551,3 +552,69 @@ def download_urls(url_set,
             raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded. Try increasing the timeout limit.")
         
     return None
+
+
+def download_file(url, save_path, chunk_size=1024, token=None):
+    """
+    This function downloads a single file from a Google Cloud Storage URL to a user-specified directory.
+
+    Parameters
+    --------
+    url: str
+        The Google Cloud Storage URL where the file is stored.
+
+    save_path: str or pathlib.Path
+        The file location (path) where the file will be downloaded. It can be a string or a pathlib.Path object.
+
+    chunk_size: 
+        Size in bytes of chunks for chunked download
+        
+    token: str, optional
+        User-specific API token generated within neon.datascience user accounts. If provided, it will be used for authentication.
+
+    Returns
+    --------
+    None
+
+    Raises
+    --------
+    None
+
+    Examples
+    --------
+    >>> download_file('https://storage.googleapis.com/neon-aop-products/2023/FullSite/D02/2023_SCBI_6/L3/DiscreteLidar/CanopyHeightModelGtif/NEON_D02_SCBI_DP3_741000_4301000_CHM.tif', '/path/to/save', 'my-api-token')
+    # This will download 'NEON_D02_SCBI_DP3_741000_4301000_CHM.tif' from the specified URL to '/path/to/save' directory using 'my-api-token' for authentication.
+
+    Notes
+    --------
+    The function creates the directory specified by 'save_path' if it does not exist. 
+    It also handles 'neon-publication' and 'neon-aop-products' in the URL differently to determine the file path. 
+    This is for downloading the readme.txt file which contains detailed information about the data package, issue logs, etc.
+    https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP3.30015.001/SCBI/20230601T000000--20230701T000000/basic/NEON.D02.SCBI.DP3.30015.001.readme.20240206T001418Z.txt
+    """
+    
+    file_path = url.split('storage.googleapis.com')[1]
+    
+    file_fullpath = save_path + "/" + file_path
+    os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
+        
+    try:
+        if token is None:
+            r = requests.get(url, stream=True, 
+                             headers={"accept": "application/json",
+                                      "User-Agent": usera})
+        else:
+            r = requests.get(url, stream=True, 
+                             headers={"X-API-TOKEN": token,
+                                      "accept": "application/json",
+                                      "User-Agent": usera})
+        with open(file_fullpath, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+
+    except:
+        raise ConnectionError(f"File {os.path.basename(url)} could not be downloaded. Try increasing the timeout limit.")
+    
+    return
+
