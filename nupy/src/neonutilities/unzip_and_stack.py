@@ -11,7 +11,6 @@ import platform
 import glob
 import re
 import importlib_resources
-from datetime import datetime
 from tqdm import tqdm
 from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
@@ -21,10 +20,6 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 from . import __resources__
 
-# zippath = "C:/Users/nickerson/Downloads/NEON_sediment (6).zip"
-# outpath = zippath[:-4]
-# level = 'all'
-# n_cores = 1
 
 def unzip_zipfile_parallel(zippath,
                            n_cores=1):

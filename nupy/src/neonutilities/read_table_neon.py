@@ -6,8 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def read_table_neon(data_file,
-                    var_file#,
-                    #use_fast_time # Equivalent in Python?
+                    var_file
                     ):
     """
 

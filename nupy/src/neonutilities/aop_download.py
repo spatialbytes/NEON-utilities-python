@@ -16,13 +16,6 @@ written by:
 @author: Christine Laney (claney@battelleecology.org)
 
 """
-# DONE: Set user agent - test with Christine (not using VPN?)
-# DONE: Get DOIs and generate citations (using get_citation function)
-# NOT NEEDED? expired URL handling (this was necessary for ECS storage but not GCS) < retry flow still helpful?
-# DONE: Added provisional/release handling in by_file_aop and by_tile_aop
-# DONE: Switch to tqdm progress bar instead of Bar for consistency with other download functions - check if Python 3.10 is required
-# DONE: Separate out input validity messages to be used by the two download functions, raise value errors instead of just printing a message
-# DONE: Update docstrings to include "Raises" with errors raised for invalid inputs, etc.
 
 from time import sleep
 import re
