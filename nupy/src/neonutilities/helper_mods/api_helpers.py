@@ -601,22 +601,41 @@ def download_file(url, save_path, chunk_size=1024, token=None):
         
     try:
         if token is None:
-            r = requests.get(url, stream=True, 
-                             headers={"accept": "application/json",
-                                      "User-Agent": usera})
+            j = 0
+            while j<3:
+                try:
+                    r = requests.get(url, stream=True, 
+                                 headers={"accept": "application/json",
+                                          "User-Agent": usera},
+                                 timeout=(10, 120))
+                    j = j+5
+                except:
+                    logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
+                    j = j+1
+                    time.sleep(5)
         else:
-            r = requests.get(url, stream=True, 
-                             headers={"X-API-TOKEN": token,
-                                      "accept": "application/json",
-                                      "User-Agent": usera})
+            j = 0
+            while j<3:
+                try:
+                    r = requests.get(url, stream=True, 
+                                     headers={"X-API-TOKEN": token,
+                                              "accept": "application/json",
+                                              "User-Agent": usera},
+                                     timeout=(10, 120))
+                    j = j+5
+                except:
+                    logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
+                    j = j+1
+                    time.sleep(5)
+                    
         with open(file_fullpath, 'wb') as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:
                     f.write(chunk)
-            r.close()
+        r.close()
 
     except:
-        raise ConnectionError(f"File {os.path.basename(url)} could not be downloaded. Try increasing the timeout limit.")
+        raise ConnectionError(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded.")
     
     return
 
