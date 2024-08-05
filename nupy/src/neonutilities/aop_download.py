@@ -340,9 +340,8 @@ def by_file_aop(dpid,
         If you have sufficient storage space on your local drive, when working 
         in batch mode, or other non-interactive workflow, use check_size=False.
 
-    save_path: str or pathlib.Path, optional
+    save_path: str, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
-        It can be a string or a pathlib.Path object.
         
     chunk_size: integer, optional
         Size in bytes of chunk for chunked download. Defaults to 1024.

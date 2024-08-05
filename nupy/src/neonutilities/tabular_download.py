@@ -2,14 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import re
-import json
-import sys
 import os
 import importlib_resources
 import pandas as pd
 import logging
 from .helper_mods.api_helpers import get_api
-from .helper_mods.api_helpers import get_api_headers
 from .helper_mods.api_helpers import get_zip_urls
 from .helper_mods.api_helpers import get_tab_urls
 from .helper_mods.api_helpers import download_urls

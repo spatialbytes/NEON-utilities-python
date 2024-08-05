@@ -17,7 +17,6 @@ dependencies = [
     "datetime",
     "importlib-resources",
     "importlib.metadata",
-    "pathlib",
     "pandas",
     "pyarrow",
     "pyproj",

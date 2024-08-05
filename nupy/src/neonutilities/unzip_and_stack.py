@@ -10,11 +10,9 @@ import zipfile
 import platform
 import glob
 import re
-import time
 import importlib_resources
 from datetime import datetime
 from tqdm import tqdm
-import shutil
 from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
 from .citation import get_citation
@@ -463,13 +461,7 @@ def stack_data_files_parallel(folder,
     
     @author: Zachary Nickerson
     """  
-    
-    # folder="C:/Users/nickerson/Downloads/NEON_elev-surfacewater"
-    # package="expanded"
-    # dpID="DP1.20016.001"
-    
-    starttime = datetime.now()
-    messages = []
+        
     releases = []
     
     dpnum = dpID[4:9]

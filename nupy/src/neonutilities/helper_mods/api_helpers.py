@@ -563,8 +563,8 @@ def download_file(url, save_path, chunk_size=1024, token=None):
     url: str
         The Google Cloud Storage URL where the file is stored.
 
-    save_path: str or pathlib.Path
-        The file location (path) where the file will be downloaded. It can be a string or a pathlib.Path object.
+    save_path: str
+        The file location (path) where the file will be downloaded.
 
     chunk_size: 
         Size in bytes of chunks for chunked download
