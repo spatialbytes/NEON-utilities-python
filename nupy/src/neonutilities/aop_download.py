@@ -16,8 +16,8 @@ written by:
 @author: Christine Laney (claney@battelleecology.org)
 
 """
-# TODO: Set user agent - test with Christine (not using VPN?)
-# TODO: Get DOIs and generate citations (using get_citation function)
+# DONE: Set user agent - test with Christine (not using VPN?)
+# DONE: Get DOIs and generate citations (using get_citation function)
 # NOT NEEDED? expired URL handling (this was necessary for ECS storage but not GCS) < retry flow still helpful?
 # DONE: Added provisional/release handling in by_file_aop and by_tile_aop
 # DONE: Switch to tqdm progress bar instead of Bar for consistency with other download functions - check if Python 3.10 is required
