@@ -15,7 +15,7 @@ from . import __resources__
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 
-def query_files(lst, dpID, site="all", startdate=None, enddate=None, 
+def query_files(lst, dpid, site="all", startdate=None, enddate=None, 
                 package="basic", release="current", 
                 timeindex="all", tabl="all", 
                 include_provisional=False, token=None):
@@ -26,7 +26,7 @@ def query_files(lst, dpID, site="all", startdate=None, enddate=None,
     Parameters
     --------
     lst: Availability info from a call to the products endpoint of the NEON API.
-    dpID: Data product identifier in the form DP#.#####.###
+    dpid: Data product identifier in the form DP#.#####.###
     site: One or more 4-letter NEON site codes
     package: Download package to access, either basic or expanded
     startdate: Earliest date of data to download, in the form YYYY-MM
@@ -49,7 +49,7 @@ def query_files(lst, dpID, site="all", startdate=None, enddate=None,
     # check expanded package status
     if package=="expanded":
       if not lst["data"]["productHasExpanded"]:
-        logging.info("No expanded package found for " + dpID + ". Basic package downloaded instead.")
+        logging.info("No expanded package found for " + dpid + ". Basic package downloaded instead.")
         package = "basic"
     
     # if sites are not specified, get list of sites with data
@@ -93,7 +93,7 @@ def query_files(lst, dpID, site="all", startdate=None, enddate=None,
         relurl = "&release=" + release
     
     # construct full query url and run query
-    qurl = "http://data.neonscience.org/api/v0/data/query?productCode=" + dpID + sitesurl + dateurl + ipurl + "&package=" + package + relurl
+    qurl = "http://data.neonscience.org/api/v0/data/query?productCode=" + dpid + sitesurl + dateurl + ipurl + "&package=" + package + relurl
     qreq = get_api(api_url=qurl, token=token)
     qdict = qreq.json()
 
@@ -111,7 +111,7 @@ def query_files(lst, dpID, site="all", startdate=None, enddate=None,
     return(flurl)
     
 
-def zips_by_product(dpID, site="all", startdate=None, enddate=None, 
+def zips_by_product(dpid, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
                     timeindex="all", tabl="all", check_size=True,
                     include_provisional=False, cloud_mode=False,
@@ -121,7 +121,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     Parameters
     --------
-    dpID: Data product identifier in the form DP#.#####.###
+    dpid: Data product identifier in the form DP#.#####.###
     site: One or more 4-letter NEON site codes
     package: Download package to access, either basic or expanded
     startdate: Earliest date of data to download, in the form YYYY-MM
@@ -141,7 +141,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     --------
     Download water quality data from COMO (Como Creek) in 2018
 
-    >>> zips_by_product(dpID="DP1.20288.001",site="COMO",
+    >>> zips_by_product(dpid="DP1.20288.001",site="COMO",
                         startdate="2018-01", enddate="2018-12",
                         token=None, savepath="/mypath/Downloads")
     
@@ -150,10 +150,10 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     @author: Claire Lunch
     """
 
-    # error message if dpID is not formatted correctly
+    # error message if dpid is not formatted correctly
     if not re.search(pattern="DP[1-4]{1}.[0-9]{5}.00[0-9]{1}", 
-                 string=dpID):
-        raise ValueError(f"{dpID} is not a properly formatted data product ID. The correct format is DP#.#####.00#")
+                 string=dpid):
+        raise ValueError(f"{dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#")
     
     # error message if package is not basic or expanded
     if not package in ["basic","expanded"]:
@@ -161,28 +161,28 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     # error messages for products that can't be downloaded by zips_by_product()
     # AOP products
-    if dpID[4:5:1]==3 and dpID!="DP1.30012.001":
-        raise ValueError(f"{dpID} is a remote sensing data product. Use the by_file_aop() or by_tile_aop() function.")
+    if dpid[4:5:1]==3 and dpid!="DP1.30012.001":
+        raise ValueError(f"{dpid} is a remote sensing data product. Use the by_file_aop() or by_tile_aop() function.")
 
     # Phenocam products
-    if dpID=="DP1.00033.001" or dpID=="DP1.00042.001":
-        raise ValueError(f"{dpID} is a phenological image product, data are hosted by Phenocam.")
+    if dpid=="DP1.00033.001" or dpid=="DP1.00042.001":
+        raise ValueError(f"{dpid} is a phenological image product, data are hosted by Phenocam.")
     
     # Aeronet product
-    if dpID=="DP1.00043.001":
-        raise ValueError(f"Spectral sun photometer ({dpID}) data are hosted by Aeronet.")
+    if dpid=="DP1.00043.001":
+        raise ValueError(f"Spectral sun photometer ({dpid}) data are hosted by Aeronet.")
     
     # DHP expanded package
-    if dpID=="DP1.10017.001" and package=="expanded":
+    if dpid=="DP1.10017.001" and package=="expanded":
         raise ValueError("Digital hemispherical images expanded file packages exceed programmatic download limits. Either download from the data portal, or download the basic package and use the URLs in the data to download the images themselves. Follow instructions in the Data Product User Guide for image file naming.")
     
     # individual SAE products
-    if dpID in ['DP1.00007.001','DP1.00010.001','DP1.00034.001','DP1.00035.001',
+    if dpid in ['DP1.00007.001','DP1.00010.001','DP1.00034.001','DP1.00035.001',
                 'DP1.00036.001','DP1.00037.001','DP1.00099.001','DP1.00100.001',
                 'DP2.00008.001','DP2.00009.001','DP2.00024.001','DP3.00008.001',
                 'DP3.00009.001','DP3.00010.001','DP4.00002.001','DP4.00007.001',
                 'DP4.00067.001','DP4.00137.001','DP4.00201.001','DP1.00030.001']:
-        raise ValueError(f"{dpID} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
+        raise ValueError(f"{dpid} is only available in the bundled eddy covariance data product. Download DP4.00200.001 to access these data.")
     
     # check for incompatible values of release= and include_provisional=
     if release=="PROVISIONAL" and not include_provisional:
@@ -219,12 +219,12 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         for s in site:
             if s in shared_aquatic_df.index:
                 ss=shared_aquatic_df.loc[s]
-                if dpID in list(ss["product"]):
+                if dpid in list(ss["product"]):
                     indx=indx+1
-                    sx=list(ss["towerSite"][ss["product"]==dpID])
+                    sx=list(ss["towerSite"][ss["product"]==dpid])
                     siter.append(sx)
                     if indx==1:
-                        logging.info(f"Some sites in your download request are aquatic sites where {dpID} is collected at a nearby terrestrial site. The sites you requested, and the sites that will be accessed instead, are listed below.")
+                        logging.info(f"Some sites in your download request are aquatic sites where {dpid} is collected at a nearby terrestrial site. The sites you requested, and the sites that will be accessed instead, are listed below.")
                     logging.info(f"{s} -> {''.join(sx)}")
                 else:
                     siter.append([s])
@@ -237,33 +237,33 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     # redirect for chemistry bundles
     chem_bundles_file=(importlib_resources.files(__resources__)/"chem_bundles.csv")
     chem_bundles_df = pd.read_csv(chem_bundles_file)
-    if dpID in list(chem_bundles_df["product"]):
-        newDPID=list(chem_bundles_df["homeProduct"][chem_bundles_df["product"]==dpID])
+    if dpid in list(chem_bundles_df["product"]):
+        newDPID=list(chem_bundles_df["homeProduct"][chem_bundles_df["product"]==dpid])
         if newDPID==["depends"]:
             raise ValueError("Root chemistry and isotopes have been bundled with the root biomass data. For root chemistry from Megapits, download DP1.10066.001. For root chemistry from periodic sampling, download DP1.10067.001.")
         else:
-            raise ValueError(f"{''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
+            raise ValueError(f"{''.join(dpid)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
 
     # redirect for veg structure and sediment data product bundles
     other_bundles_file=(importlib_resources.files(__resources__)/"other_bundles.csv")
     other_bundles_df = pd.read_csv(other_bundles_file)
-    if dpID in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
-        newDPID=list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpID])
-        raise ValueError(f"Except in RELEASE-2021, {''.join(dpID)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
+    if dpid in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
+        newDPID=list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpid])
+        raise ValueError(f"Except in RELEASE-2021, {''.join(dpid)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
     
     
     # end of error and exception handling, start the work
     # query the /products endpoint for the product requested
     if release=="current" or release=="PROVISIONAL":
         prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
-                          +dpID, token=token)
+                          +dpid, token=token)
     else:
         prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
-                          +dpID+"?release="+release, token=token)
+                          +dpid+"?release="+release, token=token)
     
     if prodreq==None:
         if release=="LATEST":
-            logging.info(f"No data found for product {dpID}. LATEST data requested; check that token is valid for LATEST access.")
+            logging.info(f"No data found for product {dpid}. LATEST data requested; check that token is valid for LATEST access.")
             return
         else:
             if release!="current" and release!="PROVISIONAL":
@@ -287,7 +287,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     # I think this would never be called due to the way get_api() is set up
     try:
         avail["error"]["status"]
-        logging.info(f"No data found for product {dpID}")
+        logging.info(f"No data found for product {dpid}")
         return
     except:
         pass
@@ -299,7 +299,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
     
     # use query endpoint if cloud mode selected
     if cloud_mode:
-        fls = query_files(lst=avail, dpID=dpID, site=site, 
+        fls = query_files(lst=avail, dpid=dpid, site=site, 
                           startdate=startdate, enddate=enddate,
                           package=package, release=release, 
                           timeindex=timeindex, tabl=tabl, 
@@ -386,7 +386,7 @@ def zips_by_product(dpID, site="all", startdate=None, enddate=None,
         # set up folder to save to
         if savepath is None:
             savepath=os.getcwd()
-        outpath=savepath+"/filesToStack"+dpID[4:9]+"/"
+        outpath=savepath+"/filesToStack"+dpid[4:9]+"/"
         
         if not os.path.exists(outpath):
             os.makedirs(outpath)

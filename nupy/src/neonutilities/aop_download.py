@@ -304,7 +304,7 @@ def by_file_aop(dpid,
                 year,
                 include_provisional=False,
                 check_size=True,
-                save_path=None,
+                savepath=None,
                 chunk_size=1024,
                 token=None):
     """
@@ -333,7 +333,7 @@ def by_file_aop(dpid,
         If you have sufficient storage space on your local drive, when working 
         in batch mode, or other non-interactive workflow, use check_size=False.
 
-    save_path: str, optional
+    savepath: str, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
         
     chunk_size: integer, optional
@@ -355,13 +355,13 @@ def by_file_aop(dpid,
 
     Examples
     --------
-    >>> by_file_aop(dpid="DP3.30015.001", site="MCRA", year="2021", save_path="./test_download")
+    >>> by_file_aop(dpid="DP3.30015.001", site="MCRA", year="2021", savepath="./test_download")
     # This will download 2021 CHM data from MCRA to the './test_download' directory.
 
     Notes
     --------
-    The function creates a folder in the 'save_path' directory, containing all AOP files meeting the query criteria. 
-    If 'save_path' is not provided, it uses the working directory.
+    The function creates a folder in the 'savepath' directory, containing all AOP files meeting the query criteria. 
+    If 'savepath' is not provided, it uses the working directory.
     """
 
     # raise value error and print message if dpid isn't formatted as expected
@@ -463,8 +463,8 @@ def by_file_aop(dpid,
             return
 
     # create folder in working directory to put files in
-    if save_path is not None:
-        download_path = save_path + "/" + dpid
+    if savepath is not None:
+        download_path = savepath + "/" + dpid
     else:
         download_path = os.getcwd() + "/" + dpid
     # print('download path', download_path)
@@ -476,7 +476,7 @@ def by_file_aop(dpid,
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
     for file in tqdm(files):  
-        download_file(url=file, save_path=download_path,
+        download_file(url=file, savepath=download_path,
                       chunk_size=chunk_size, token=token)
         
     # download issue log table
@@ -520,7 +520,7 @@ def by_tile_aop(dpid,
                 buffer=0,
                 include_provisional=False,
                 check_size=True,
-                save_path=None,
+                savepath=None,
                 chunk_size=1024,
                 token=None,
                 verbose=False):
@@ -561,7 +561,7 @@ def by_tile_aop(dpid,
         If you have sufficient storage space on your local drive, when working 
         in batch mode, or other non-interactive workflow, use check_size=False.
 
-    save_path: str or pathlib.Path, optional
+    savepath: str or pathlib.Path, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
         It can be a string or a pathlib.Path object.
         
@@ -592,7 +592,7 @@ def by_tile_aop(dpid,
     --------
     Download 2021 CHM data from MCRA at a single point:
     by_tile_aop(dpid="DP3.30015.001", site="MCRA",easting = , northing = ,
-                year="2021", save_path="../../test_download")
+                year="2021", savepath="../../test_download")
 
 
     """
@@ -841,8 +841,8 @@ def by_tile_aop(dpid,
             return
 
     # create folder in working directory to put files in
-    if save_path is not None:
-        download_path = save_path + "/" + dpid
+    if savepath is not None:
+        download_path = savepath + "/" + dpid
     else:
         download_path = os.getcwd() + "/" + dpid
     # print('download path', download_path)
@@ -854,7 +854,7 @@ def by_tile_aop(dpid,
         f"Downloading {num_files} files totaling approximately {download_size}\n")
     sleep(1)
     for file in tqdm(files):  
-        download_file(url=file, save_path=download_path,
+        download_file(url=file, savepath=download_path,
                       chunk_size=chunk_size, token=token)
         
     # download issue log table

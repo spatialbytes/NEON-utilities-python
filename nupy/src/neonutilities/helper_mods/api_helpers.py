@@ -572,7 +572,7 @@ def download_urls(url_set,
     return None
 
 
-def download_file(url, save_path, chunk_size=1024, token=None):
+def download_file(url, savepath, chunk_size=1024, token=None):
     """
     This function downloads a single file from a Google Cloud Storage URL to a user-specified directory.
 
@@ -581,7 +581,7 @@ def download_file(url, save_path, chunk_size=1024, token=None):
     url: str
         The Google Cloud Storage URL where the file is stored.
 
-    save_path: str
+    savepath: str
         The file location (path) where the file will be downloaded.
 
     chunk_size: 
@@ -605,16 +605,17 @@ def download_file(url, save_path, chunk_size=1024, token=None):
 
     Notes
     --------
-    The function creates the directory specified by 'save_path' if it does not exist. 
+    The function creates the directory specified by 'savepath' if it does not exist. 
     It also handles 'neon-publication' and 'neon-aop-products' in the URL differently to determine the file path. 
     This is for downloading the readme.txt file which contains detailed information about the data package, issue logs, etc.
     https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP3.30015.001/SCBI/20230601T000000--20230701T000000/basic/NEON.D02.SCBI.DP3.30015.001.readme.20240206T001418Z.txt
     """
     
-    # TODO: genericize this step
-    file_path = url.split('storage.googleapis.com')[1]
+    pathparts = url.split("/")
+    file_path = "/".join(pathparts[3:len(pathparts)])
+    file_path = "/"+file_path
     
-    file_fullpath = save_path + "/" + file_path
+    file_fullpath = savepath + "/" + file_path
     os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
         
     try:
