@@ -613,7 +613,6 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     
     pathparts = url.split("/")
     file_path = "/".join(pathparts[3:len(pathparts)])
-    file_path = "/"+file_path
     
     file_fullpath = savepath + "/" + file_path
     os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
