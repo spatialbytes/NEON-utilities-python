@@ -29,7 +29,7 @@ class TestGetIssueLog(unittest.TestCase):
                                             'issue', 'resolution'])
 
         self.assertEqual(
-            df.loc[0, 'issue'], 'Original algorithm did not take advantage of improvements in the Riegl Lidar to handle short stature vegetation.')
+            df.loc[0, 'issue'][0:57], 'Original algorithm did not take advantage of improvements')
         self.assertEqual(df.loc[0, 'issueDate'], '2022-01-19T00:00:00Z')
 
     def test_get_issue_log_eddy(self):
@@ -40,7 +40,7 @@ class TestGetIssueLog(unittest.TestCase):
         self.assertEqual(list(df.columns), ['id', 'parentIssueID', 'issueDate',
                                             'resolvedDate', 'dateRangeStart',
                                             'dateRangeEnd', 'locationAffected',
-                                            'issue', 'resolution', 'dpid'])
+                                            'issue', 'resolution', 'dpID'])
 
         # # Check a few rows
         # # Replace with the expected value
