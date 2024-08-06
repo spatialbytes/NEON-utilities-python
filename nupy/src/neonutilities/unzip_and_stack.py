@@ -909,7 +909,12 @@ def stack_by_table(filepath,
 
         for k in stackedlist.keys():
             tk = stackedlist[k]
-            tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
+            if "citation" in k:
+                with open(f"{stacked_files_dir}/{k}.txt", 
+                          mode="w+", encoding="utf-8") as f:
+                    f.write(tk)
+            else:
+                tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
 
         return None
         

@@ -549,7 +549,7 @@ def download_urls(url_set,
                     out_file.write(content)
 
         except:
-            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded. Try increasing the timeout limit.")
+            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. Check your network connection.")
         
     return None
 
