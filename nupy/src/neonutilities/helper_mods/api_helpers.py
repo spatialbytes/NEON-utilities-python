@@ -535,21 +535,39 @@ def download_urls(url_set,
 
         try:
             if token is None:
-                with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                    content = requests.get(url_set["z"][i], stream=True, 
-                                           headers={"accept": "application/json",
-                                           "User-Agent": usera}).content
-                    out_file.write(content)
+                j = 0
+                while j<3:
+                    try:
+                        with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                            content = requests.get(url_set["z"][i], stream=True, 
+                                                   headers={"accept": "application/json",
+                                                   "User-Agent": usera}, 
+                                                   timeout=(10, 120)).content
+                        j = j+5
+                    except:
+                        logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
+                        j = j+1
+                        time.sleep(5)
             else:
-                with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                    content = requests.get(url_set["z"][i], stream=True, 
-                                           headers={"X-API-TOKEN": token, 
-                                                    "accept": "application/json",
-                                                    "User-Agent": usera}).content
-                    out_file.write(content)
-
+                j = 0
+                while j<3:
+                    try:
+                        with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                            content = requests.get(url_set["z"][i], stream=True, 
+                                                   headers={"X-API-TOKEN": token, 
+                                                            "accept": "application/json",
+                                                            "User-Agent": usera}, 
+                                                   timeout=(10, 120)).content
+                        j = j+5
+                    except:
+                        logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
+                        j = j+1
+                        time.sleep(5)
+                        
+            out_file.write(content)
+            
         except:
-            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. Check your network connection.")
+            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this persists, check your network connection and check the NEON Data Portal for outage alerts.")
         
     return None
 
