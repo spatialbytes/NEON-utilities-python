@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
+import pyarrow as pa
+from pyarrow import dataset
 import logging
+from .unzip_and_stack import get_variables
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def read_table_neon(data_file,
@@ -14,8 +17,8 @@ def read_table_neon(data_file,
     
     Parameters
     --------
-    data_file: A data frame containing a NEON data table, or the filepath to a data table to load.
-    var_file: A data frame containing the corresponding NEON variables file, or the filepath to the variables file.
+    data_file: Filepath to a data table to load.
+    var_file: Filepath to the variables file.
     
     Return
     --------
@@ -38,12 +41,6 @@ def read_table_neon(data_file,
         except:
             logging.info("Table read failed because var_file must be either a NEON variables table or a file path to a NEON variables table.")
             return
-    # else:
-    #     try:
-    #         v = pd.DataFrame(var_file)
-    #     except:
-    #         logging.info("Table read failed because var_file must be either a NEON variables table or a file path to a NEON variables table.")
-    #         return
         
     # Check this is a valid variables file
     if any(x in ['category','system','stat'] for x in list(v.columns)):
@@ -54,20 +51,8 @@ def read_table_neon(data_file,
             logging.info('var_file is not a variables file, or is missing critical values.')
             return
     
-    tableschema = get_variables(v)
-    
-    # # Make a new colClass column
-    # # Use to specify data types
-    # v['colClass'] = None
-    # v['colClass'][v.dataType == "real"] = "float"
-    # v['colClass'][v.dataType == "integer"] = "int"
-    # v['colClass'][v.dataType == "unsigned integer"] = "int"
-    # v['colClass'][v.dataType == "signed integer"] = "int"
-    # v['colClass'][v.dataType == "string"] = "str"
-    # v['colClass'][v.dataType == "uri"] = "str"
-    # v['colClass'][v.dataType == "dateTime"] = "datetime"
-    # v = v[['table','fieldName','colClass']]
-    
+    fullschema = get_variables(v)
+        
     # Read in data file and check type
     if isinstance(data_file,str):
         try:

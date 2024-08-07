@@ -425,7 +425,7 @@ def format_readme(readmetab,
 
 def stack_data_files_parallel(folder,
                               package,
-                              dpID,
+                              dpid,
                               n_cores=1,
                               progress=True,
                               cloud_mode=False
@@ -437,7 +437,7 @@ def stack_data_files_parallel(folder,
     Parameters
     --------
     folder: The filepath location of the unzipped NEON download package folder.
-    dpID: Data product ID of product to stack.
+    dpid: Data product ID of product to stack.
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     progress: Should a progress bar be displayed?
     cloud_mode: cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
@@ -459,7 +459,7 @@ def stack_data_files_parallel(folder,
         
     releases = []
     
-    dpnum = dpID[4:9]
+    dpnum = dpid[4:9]
     
     if cloud_mode:
         filenames = [os.path.basename(f) for f in folder]
@@ -476,7 +476,7 @@ def stack_data_files_parallel(folder,
 
     
     # handle per-sample (data frame) tables separately
-    if dpID in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
+    if dpid in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
@@ -489,9 +489,9 @@ def stack_data_files_parallel(folder,
         fdattab = fdat.to_table()
         fpdat = fdattab.to_pandas()
                 
-        if dpID == "DP1.20190.001":
+        if dpid == "DP1.20190.001":
             stacklist["rea_conductivityRawData"] = fpdat
-        elif dpID == "DP1.20193.001":
+        elif dpid == "DP1.20193.001":
             stacklist["sbd_conductivityRawData"] = fpdat
         else:
             stacklist["per_sample"] = fpdat
@@ -731,20 +731,20 @@ def stack_data_files_parallel(folder,
     # get issue log table
     # token omitted here since it's not otherwise used in stacking functions
     # consider a runLocal option, like in R stackEddy()
-    stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpID=dpID, token=None)
+    stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpid=dpid, token=None)
     
     # get relevant citation(s)
     releases = sum(releases, [])
     releases = list(set(releases))
     if "PROVISIONAL" in releases:
         try:
-            stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpID=dpID, release="PROVISIONAL")
+            stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpid=dpid, release="PROVISIONAL")
         except:
             pass
     relr = re.compile("RELEASE-20[0-9]{2}")
     rs = [relr.search(r).group(0) for r in releases if relr.search(r)]
     if len(rs)==1:
-        stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpID=dpID, release=rs[0])
+        stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpid=dpid, release=rs[0])
     if len(rs)>1:
         logging.info("Multiple data releases were stacked together. This is not appropriate, check your input data.")
     
@@ -812,18 +812,18 @@ def stack_by_table(filepath,
         logging.info('Data files are not present in the specified filepath.')
         return
     
-    # Determine dpID
+    # Determine dpid
     # this regexpr allows for REV = .001 or .002
-    dpID_listlist = []
+    dpid_listlist = []
     for f in range(len(files)):
-        dpID_listlist.append(re.findall(re.compile("DP[1-4][.][0-9]{5}[.]00[1-2]{1}"),files[f]))
-    dpID = [x for dpID_list in dpID_listlist for x in dpID_list]
-    dpID = list(set(dpID))
-    if not len(dpID) == 1:
+        dpid_listlist.append(re.findall(re.compile("DP[1-4][.][0-9]{5}[.]00[1-2]{1}"),files[f]))
+    dpid = [x for dpid_list in dpid_listlist for x in dpid_list]
+    dpid = list(set(dpid))
+    if not len(dpid) == 1:
         logging.info("Data product ID could not be determined. Check that filepath contains data files, from a single NEON data product.")
         return
     else:
-        dpID = dpID[0]
+        dpid = dpid[0]
         
     # Determine download package
     package_listlist = []
@@ -837,29 +837,29 @@ def stack_by_table(filepath,
         package = 'basic'
             
     # Error message for AOP data
-    if dpID[4] == '3' and not dpID == 'DP1.30012.001':
+    if dpid[4] == '3' and not dpid == 'DP1.30012.001':
         logging.info("This is an AOP data product, files cannot be stacked. Use by_file_aop() or by_tile_aop() to download data.")
         return
         
     # Error messafe for SAE data
-    if dpID == 'DP4.00200.001':
+    if dpid == 'DP4.00200.001':
         logging.info("This eddy covariance data product is in HDF5 format. Stack using the stackEddy() function in the R package version of neonUtilities.")
         return
         
     # Exceptions for digital hemispheric photos
-    if dpID == 'DP1.10017.001' and package == 'expanded':
+    if dpid == 'DP1.10017.001' and package == 'expanded':
         save_unzipped_files = True
         logging.info("Note: Digital hemispheric photos (in NEF format) cannot be stacked; only the CSV metadata files will be stacked.")
         
     # Warning about all sensor soil data
     # Test and modify the file length for the alert, this should be a lot better with arrow
-    if dpID in ['DP1.00094.001','DP1.00041.001'] and len(files) > 24:
+    if dpid in ['DP1.00094.001','DP1.00041.001'] and len(files) > 24:
         logging.info("Warning! Attempting to stack soil sensor data. Note that due to the number of soil sensors at each site, data volume is very high for these data. Consider dividing data processing into chunks and/or using a high-performance system.")
     
     # If all checks pass, unzip and stack files
     if cloud_mode:
         stackedlist = stack_data_files_parallel(folder=files, package=package, 
-                                                dpID=dpID, cloud_mode=True)
+                                                dpid=dpid, cloud_mode=True)
     
     else:
     
@@ -875,7 +875,7 @@ def stack_by_table(filepath,
             stackpath = filepath
                     
         # Stack the files
-        stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpID=dpID)
+        stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpid=dpid)
             
         # delete input files
         if not save_unzipped_files:
@@ -919,7 +919,7 @@ def stack_by_table(filepath,
         return None
         
 
-def load_by_product(dpID, site="all", startdate=None, enddate=None, 
+def load_by_product(dpid, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
                     timeindex="all", tabl="all", check_size=True,
                     include_provisional=False, cloud_mode=False,
@@ -929,7 +929,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
     
     Parameters
     --------
-    dpID: Data product identifier in the form DP#.#####.###
+    dpid: Data product identifier in the form DP#.#####.###
     site: One or more 4-letter NEON site codes
     package: Download package to access, either basic or expanded
     startdate: Earliest date of data to download, in the form YYYY-MM
@@ -948,7 +948,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
     --------
     Download water quality data from COMO (Como Creek) in 2018
 
-    >>> load_by_product(dpID="DP1.20288.001",site="COMO",
+    >>> load_by_product(dpid="DP1.20288.001",site="COMO",
                         startdate="2018-01", enddate="2018-12",
                         token=None)
     
@@ -960,7 +960,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
     savepath = os.getcwd()
     
     if cloud_mode:
-        flist = zips_by_product(dpID=dpID, site=site, 
+        flist = zips_by_product(dpid=dpid, site=site, 
                         startdate=startdate, enddate=enddate,
                         package=package, release=release,
                         timeindex=timeindex, tabl=tabl,
@@ -977,7 +977,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
         
     else:
     
-        zips_by_product(dpID=dpID, site=site, 
+        zips_by_product(dpid=dpid, site=site, 
                         startdate=startdate, enddate=enddate,
                         package=package, release=release,
                         timeindex=timeindex, tabl=tabl,
@@ -986,7 +986,7 @@ def load_by_product(dpID, site="all", startdate=None, enddate=None,
                         progress=progress, token=token,
                         savepath=savepath)
         
-        stackpath = savepath+"/filesToStack"+dpID[4:9]+"/"
+        stackpath = savepath+"/filesToStack"+dpid[4:9]+"/"
         
         outlist = stack_by_table(filepath=stackpath, savepath="envt",
                                  save_unzipped_files=False, progress=progress)

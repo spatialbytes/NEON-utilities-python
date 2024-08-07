@@ -543,6 +543,7 @@ def download_urls(url_set,
                                                    headers={"accept": "application/json",
                                                    "User-Agent": usera}, 
                                                    timeout=(10, 120)).content
+                            out_file.write(content)
                         j = j+5
                     except:
                         logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
@@ -558,13 +559,12 @@ def download_urls(url_set,
                                                             "accept": "application/json",
                                                             "User-Agent": usera}, 
                                                    timeout=(10, 120)).content
+                            out_file.write(content)
                         j = j+5
                     except:
                         logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
                         j = j+1
                         time.sleep(5)
-                        
-            out_file.write(content)
             
         except:
             raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this persists, check your network connection and check the NEON Data Portal for outage alerts.")
