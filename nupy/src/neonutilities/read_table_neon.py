@@ -51,55 +51,31 @@ def read_table_neon(data_file,
             logging.info('var_file is not a variables file, or is missing critical values.')
             return
     
-    fullschema = get_variables(v)
-        
-    # Read in data file and check type
-    if isinstance(data_file,str):
-        try:
-            d = pd.read_csv(data_file)
-        except:
-            logging.info("Table read failed because data_file must be either a NEON variables table or a file path to a NEON variables table.")
-            return
-    else:
-        try:
-            d = pd.DataFrame(data_file)
-        except:
-            logging.info("Table read failed because data_file must be either a NEON variables table or a file path to a NEON variables table.")
-            return    
+    # get field names from the data table without loading table
+    tabcols = pd.read_csv(data_file, index_col=0, nrows=0).columns.tolist()
+    
+    # subset variables file to the relevant fields
+    vtab = v[v["fieldName"].isin(tabcols)]
+    vtabu = vtab.drop_duplicates(subset="fieldName", ignore_index=True)
+
+    # generate schema
+    tableschema = get_variables(vtabu)
     
     # Check that most fields have a corrsponding value in variables
-    m = len(set(list(d.columns)) - set(list(v.fieldName)))
-    if m == len(d.columns):
+    m = len(tabcols) - len(tableschema)
+    if m == len(tabcols):
         logging.info("Cannot correct data types because the variables file does not match the data file.")
         return
     if m > 4:
-        logging.info(f"{m} fieldNames are present in data files but not in variables file. Unknown fields are read as character strings.")
-    
-    # IN PROGRESS - LEFT OFF HERE #
+        logging.info(f"{m} fieldNames are present in data file but not in variables file. Data load may be affected; if possible, unknown fields are read as character strings.")
     
     # read data and append file names
-    dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
-    cols = tableschema.names
-    cols.append("__filename")
-    dattab = dat.to_table(columns=cols)
+    dat = dataset.dataset(source=data_file, format="csv", schema=tableschema)
+    dattab = dat.to_table()
     pdat = dattab.to_pandas()    
-
-    
-    # # fieldNames each have a unique dataType - don't need to match table    
-    # for i in list(d.columns):
-    #     if i not in list(v.fieldName):
-    #         d[i] = d[i].astype("string")
-    #     else:
-    #         type = v.colClass[v.fieldName == i]
-    #         type=type[type.index[0]]
-    #         if type == 'str':
-    #             d[i] = d[i].astype("string")
-    #         if type == 'datetime':
-    #             d[i] = date_convert(d[i])
-    #         if type in ['int','float']:
-    #             d[i] = pd.to_numeric(d[i])
                 
-    return d
+    return pdat
+
 
 def date_convert(dates):
     """

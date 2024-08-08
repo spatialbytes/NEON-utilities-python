@@ -567,7 +567,8 @@ def download_urls(url_set,
                         time.sleep(5)
             
         except:
-            raise ConnectionError(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this persists, check your network connection and check the NEON Data Portal for outage alerts.")
+            logging.info(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
+            pass
         
     return None
 
@@ -653,7 +654,8 @@ def download_file(url, savepath, chunk_size=1024, token=None):
         r.close()
 
     except:
-        raise ConnectionError(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded.")
+        logging.info(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
+        pass
     
     return
 
