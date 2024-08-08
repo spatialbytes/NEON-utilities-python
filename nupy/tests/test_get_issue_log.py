@@ -40,7 +40,7 @@ class TestGetIssueLog(unittest.TestCase):
         self.assertEqual(list(df.columns), ['id', 'parentIssueID', 'issueDate',
                                             'resolvedDate', 'dateRangeStart',
                                             'dateRangeEnd', 'locationAffected',
-                                            'issue', 'resolution', 'dpID'])
+                                            'issue', 'resolution', 'dpid'])
 
         # # Check a few rows
         # # Replace with the expected value

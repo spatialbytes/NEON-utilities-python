@@ -16,7 +16,7 @@ written by:
 import re
 import pandas as pd
 from .helper_mods.api_helpers import get_api
-# from neonutilities.helper_mods.api_helpers import get_api
+import warnings
 
 # %% functions to validate inputs (should pull these out into another helper module??)
 
@@ -57,7 +57,7 @@ def get_change_log_df(dpid, token=None):
         api_url=f"http://data.neonscience.org/api/v0/products/{dpid}", token=token)
     all_product_info = pd.json_normalize(req.json()['data'])
     change_log_df = pd.DataFrame(all_product_info['changeLogs'][0])
-
+    
     return change_log_df
 
 
@@ -89,8 +89,10 @@ def get_eddy_issue_log(dpid, token=None):
             change_log_df['dpid'] = dpid
             eddy_issue_log_list.append(change_log_df)
 
-    eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
-
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
+    
     return eddy_issue_log_df
 
 
