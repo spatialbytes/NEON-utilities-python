@@ -656,7 +656,7 @@ def stack_data_files_parallel(folder,
             vlist[j] = pd.concat([vlist[j], added_fields_all], ignore_index=True)
         
         # for IS products, append domainID, siteID, HOR, VER
-        if not "siteID" in pdat.columns.to_list():
+        if not "siteID" in pdat.columns.to_list() and not table_types[j]=="lab":
             
             dr = re.compile("D[0-2]{1}[0-9]{1}")
             domval = [dr.search(d).group(0) for d in pdat["__filename"]]
@@ -706,14 +706,17 @@ def stack_data_files_parallel(folder,
                             if 'startDateTime' in pcols:
                                 datevar = 'startDateTime'
             # sort the table by site then date, all ascending
-            if datevar is None:
-                pdat.sort_values(by=['siteID'],
-                                 ascending=[True],
-                                 inplace=True, ignore_index=True)
-            else:
-                pdat.sort_values(by=['siteID',datevar],
-                                 ascending=[True,True],
-                                 inplace=True, ignore_index=True)
+            try:
+                if datevar is None:
+                    pdat.sort_values(by=['siteID'],
+                                     ascending=[True],
+                                     inplace=True, ignore_index=True)
+                else:
+                    pdat.sort_values(by=['siteID',datevar],
+                                     ascending=[True,True],
+                                     inplace=True, ignore_index=True)
+            except:
+                pass
         
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":

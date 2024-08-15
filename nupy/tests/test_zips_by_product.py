@@ -6,7 +6,7 @@ Created on 14 Mar 2024
 
 Unit tests for zips_by_product()
 
-Mocking is not used here, tests access API resources. Tests here primarily test for error handling.
+Mocking is not used here, tests access API resources.
 
 """
 
@@ -16,9 +16,6 @@ from neonutilities import zips_by_product
 
 import pytest
 import logging
-
-# read in token from os.environ
-token = os.environ.get("NEON_TOKEN")
 
 def test_zips_by_product_dpid():
     """
@@ -40,4 +37,25 @@ def test_zips_by_product_site(caplog):
 
     assert any("There are no data at the selected sites." in record.message for record in caplog.records)
     
-    
+def test_zips_by_product_cloud():
+    """
+    Test that running in cloud mode returns the correct list of files
+    """
+    murls = zips_by_product(dpid='DP1.10003.001', site=['NIWO','PUUM'],
+                            startdate='2019-01', enddate='2019-12',
+                            release='RELEASE-2024',
+                            check_size=False, cloud_mode=True)
+    lst = ['https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP1.10003.001.brd_perpoint.2019-07.basic.20231227T192510Z.csv', 'https://storage.googleapis.com/neon-publication/release/tag/RELEASE-2024/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP1.10003.001.EML.20190703-20190713.20240127T000425Z.xml', 'https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP1.10003.001.variables.20231227T192510Z.csv', 'https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP0.10003.001.validation.20231227T192510Z.csv', 'https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP1.10003.001.brd_countdata.2019-07.basic.20231227T192510Z.csv', 'https://storage.googleapis.com/neon-publication/release/tag/RELEASE-2024/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP1.10003.001.readme.20240127T000425Z.txt', 'https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP1.10003.001/NIWO/20190701T000000--20190801T000000/basic/NEON.D13.NIWO.DP0.10003.001.categoricalCodes.20231227T192510Z.csv']
+    assert murls == lst is True
+
+# def test_zips_by_product_avg():
+#     """
+#     Test that download by averaging interval returns the correct list of files
+#     """
+#     murls = zips_by_product(dpID='DP1.00005.001', site=['NIWO','PUUM'],
+#                             startdate='2022-06', enddate='2022-07',
+#                             timeindex=30, check_size=False, progress=False,
+#                             release='RELEASE-2024', cloud_mode=True)
+# # this is not working
+
+
