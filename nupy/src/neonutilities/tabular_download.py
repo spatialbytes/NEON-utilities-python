@@ -108,7 +108,22 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
         for k in range(0, len(fdict)):
           flurl.append(fdict[k].get("url"))
           
-    return(flurl)
+    # if timeindex or tabl are set, subset the list of files
+    if timeindex == "all" and tabl == "all":
+        return(flurl)
+    else:
+        if timeindex != "all" and tabl != "all":
+            raise ValueError("Only one of timeindex or tabl can be specified, not both.")
+        else:
+            if timeindex!="all":
+                tt = re.compile(str(timeindex)+"min|"+str(timeindex)+"_min|science_review_flags|variables|readme|sensor_positions|categoricalCodes")
+                
+            if tabl!="all":
+                tt = re.compile("[.]"+tabl+"[.]|variables|readme|sensor_positions|categoricalCodes")
+                
+            flurlsub = [f for f in flurl if tt.search(f)]
+            return(flurlsub)
+
     
 
 def zips_by_product(dpid, site="all", startdate=None, enddate=None, 

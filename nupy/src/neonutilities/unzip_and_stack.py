@@ -15,10 +15,24 @@ from tqdm import tqdm
 from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
 from .citation import get_citation
+from .helper_mods.api_helpers import readme_url
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 from . import __resources__
+
+varschema = pa.schema([
+    ('table', pa.string()),
+    ('fieldName', pa.string()),
+    ('description', pa.string()),
+    ('dataType', pa.string()),
+    ('units', pa.string()),
+    ('sampleCode', pa.string()),
+    ('downloadPkg', pa.string()),
+    ('pubFormat', pa.string()),
+    ('primaryKey', pa.string()),
+    ('categoricalCodeName', pa.string())
+])
 
 
 def unzip_zipfile_parallel(zippath,
@@ -464,6 +478,7 @@ def stack_data_files_parallel(folder,
     if cloud_mode:
         filenames = [os.path.basename(f) for f in folder]
         filepaths = folder
+        gcs = fs.GcsFileSystem(anonymous=True)
     else:
         # Get filenames without full path
         filenames = find_datatables(folder = folder,f_names=False)
@@ -522,7 +537,8 @@ def stack_data_files_parallel(folder,
     if any(re.search('variables.20', path) for path in filepaths):
         varpath = get_recent_publication([path for path in filepaths if "variables.20" in path])[0]
         if cloud_mode:
-            vp = dataset.dataset(varpath)
+            vp = dataset.dataset(source=re.sub("https://storage.googleapis.com/", "", varpath),
+                                 filesystem=gcs, format="csv", schema=varschema)
             va = vp.to_table()
             v = va.to_pandas()
         else:
@@ -550,7 +566,8 @@ def stack_data_files_parallel(folder,
     if any(re.search('validation', path) for path in filepaths):
         valpath = get_recent_publication([path for path in filepaths if "validation" in path])[0]
         if cloud_mode:
-            vp = dataset.dataset(valpath)
+            vp = dataset.dataset(source=re.sub("https://storage.googleapis.com/", "", valpath),
+                                 filesystem=gcs, format="csv", schema=None)
             va = vp.to_table()
             val = va.to_pandas()
         else:
@@ -561,7 +578,8 @@ def stack_data_files_parallel(folder,
     if any(re.search('categoricalCodes', path) for path in filepaths):
         ccpath = get_recent_publication([path for path in filepaths if "categoricalCodes" in path])[0]
         if cloud_mode:
-            cp = dataset.dataset(ccpath)
+            cp = dataset.dataset(source=re.sub("https://storage.googleapis.com/", "", ccpath),
+                                 filesystem=gcs, format="csv", schema=None)
             ca = cp.to_table()
             cc = ca.to_pandas()
         else:
@@ -569,13 +587,15 @@ def stack_data_files_parallel(folder,
         stacklist[f"categoricalCodes_{dpnum}"] = cc
         
     # get readme file
-    readmefiles = glob.glob(os.path.join(folder, '**', '*.txt'), recursive=True)
-    if any(re.search('readme.20', path) for path in readmefiles):
-        readmepath = get_recent_publication([path for path in readmefiles if "readme.20" in path])[0]
-        rd = pd.read_table(readmepath, delimiter='\t', header=None)
-        rd = format_readme(rd,tables)            
+    if any(re.search('readme.20', path) for path in filepaths):
+        readmepath = get_recent_publication([path for path in filepaths if "readme.20" in path])[0]
+        if cloud_mode:
+            rd = readme_url(readmepath)
+        else:
+            rd = pd.read_table(readmepath, delimiter='\t', header=None)
+        rd = format_readme(rd,tables)      
         # save the readme
-        stacklist[f"readme_{dpnum}"] = rd    
+        stacklist[f"readme_{dpnum}"] = rd
         
     # stack tables according to types
     logging.info("Stacking data files")
@@ -622,12 +642,14 @@ def stack_data_files_parallel(folder,
         
         # read data and append file names
         if cloud_mode:
-            gcs = fs.GcsFileSystem(anonymous=True)
-            tablebuckets = [re.sub(pattern="https://storage.googleapis.com/", repl="", string=b) for b in tablepaths]
-            dat = dataset.dataset(source=tablebuckets, filesystem=gcs, format="csv", schema=tableschema)
+            tablebuckets = [re.sub(pattern="https://storage.googleapis.com/", 
+                                   repl="", string=b) for b in tablepaths]
+            dat = dataset.dataset(source=tablebuckets, filesystem=gcs, 
+                                  format="csv", schema=tableschema)
 
         else:
-            dat = dataset.dataset(source=tablepaths,format="csv",schema=tableschema)
+            dat = dataset.dataset(source=tablepaths,
+                                  format="csv", schema=tableschema)
             
         cols = tableschema.names
         cols.append("__filename")
@@ -767,11 +789,11 @@ def stack_by_table(filepath,
                    ):
     """
 
-    Join data files in a zipped NEON data package by table type.
+    Join data files in a zipped or unzipped NEON data package by table type.
     
     Parameters
     --------
-    filepath: The location of the zip file.
+    filepath: The location of the zip file or downloaded files.
     savepath: The location to save the output files to. (optional)
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
     n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.

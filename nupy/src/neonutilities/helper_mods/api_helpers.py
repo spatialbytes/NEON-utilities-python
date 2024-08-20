@@ -8,6 +8,7 @@ import time
 import platform
 import importlib.metadata
 import logging
+import pandas as pd
 from tqdm import tqdm
 from .metadata_helpers import get_recent
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -659,3 +660,33 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     
     return
 
+
+def readme_url(readmepath):
+    """
+    This function accesses a readme file via a url and converts to a usable format.
+    Called by the stacking functions when run in cloud mode.
+    A token is not used in the API call since tokens are not used in the stacking functions.
+
+    Parameters
+    --------
+    readmepath: str
+        URL path to the readme file.
+
+    Returns
+    --------
+    DataFrame
+        A pandas data frame of the readme content.
+
+"""
+
+    rdres = requests.get(readmepath, 
+                         headers={"accept": "application/json",
+                                  "User-Agent": usera})
+    rdtxt = rdres.text
+    rdlst = rdtxt.split("\n")
+    rdfrm = pd.DataFrame(rdlst)
+    
+    return(rdfrm)
+    
+    
+    
