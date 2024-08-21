@@ -598,7 +598,8 @@ def stack_data_files_parallel(folder,
         stacklist[f"readme_{dpnum}"] = rd
         
     # stack tables according to types
-    logging.info("Stacking data files")
+    if progress:
+        logging.info("Stacking data files")
     arrowvars = pa.Table.from_pandas(stacklist[f"variables_{dpnum}"])
     for j in tqdm(tables, disable=not progress): 
 
@@ -662,12 +663,13 @@ def stack_data_files_parallel(folder,
         pdat = pdat.assign(publicationDate = pubval)
         
         # append release tag
-        pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
-        pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
-        relval = [re.sub(".*\\.","",s) for s in pubrelval]
-        relval = [re.sub("\\/","",s) for s in relval]
-        pdat = pdat.assign(release = relval)
-        releases.append(list(set(relval)))
+        if not cloud_mode:
+            pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
+            pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
+            relval = [re.sub(".*\\.","",s) for s in pubrelval]
+            relval = [re.sub("\\/","",s) for s in relval]
+            pdat = pdat.assign(release = relval)
+            releases.append(list(set(relval)))
         
         # append fields to variables file
         if f"variables_{dpnum}" in stacklist.keys():
@@ -684,9 +686,9 @@ def stack_data_files_parallel(folder,
             domval = [dr.search(d).group(0) for d in pdat["__filename"]]
             pdat.insert(0, "domainID", domval)
             
-            sr = re.compile("[.][A-Z]{4}[.]")
+            sr = re.compile("D[0-9]{2}[.][A-Z]{4}[.]")
             sitel = [sr.search(s).group(0) for s in pdat["__filename"]]
-            siteval = [re.sub(pattern="[.]", repl="", string=s) for s in sitel]
+            siteval = [re.sub(pattern="D[0-9]{2}[.]|[.]", repl="", string=s) for s in sitel]
             pdat.insert(1, "siteID", siteval)
             
             if j != "sensor_positions":
@@ -759,19 +761,22 @@ def stack_data_files_parallel(folder,
     stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpid=dpid, token=None)
     
     # get relevant citation(s)
-    releases = sum(releases, [])
-    releases = list(set(releases))
-    if "PROVISIONAL" in releases:
-        try:
-            stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpid=dpid, release="PROVISIONAL")
-        except:
-            pass
-    relr = re.compile("RELEASE-20[0-9]{2}")
-    rs = [relr.search(r).group(0) for r in releases if relr.search(r)]
-    if len(rs)==1:
-        stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpid=dpid, release=rs[0])
-    if len(rs)>1:
-        logging.info("Multiple data releases were stacked together. This is not appropriate, check your input data.")
+    try:
+        releases = sum(releases, [])
+        releases = list(set(releases))
+        if "PROVISIONAL" in releases:
+            try:
+                stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpid=dpid, release="PROVISIONAL")
+            except:
+                pass
+        relr = re.compile("RELEASE-20[0-9]{2}")
+        rs = [relr.search(r).group(0) for r in releases if relr.search(r)]
+        if len(rs)==1:
+            stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpid=dpid, release=rs[0])
+        if len(rs)>1:
+            logging.info("Multiple data releases were stacked together. This is not appropriate, check your input data.")
+    except:
+        pass
     
     return stacklist
     
@@ -884,7 +889,8 @@ def stack_by_table(filepath,
     # If all checks pass, unzip and stack files
     if cloud_mode:
         stackedlist = stack_data_files_parallel(folder=files, package=package, 
-                                                dpid=dpid, cloud_mode=True)
+                                                dpid=dpid, progress=progress,
+                                                cloud_mode=True)
     
     else:
     
@@ -900,7 +906,10 @@ def stack_by_table(filepath,
             stackpath = filepath
                     
         # Stack the files
-        stackedlist = stack_data_files_parallel(folder=stackpath, package=package, dpid=dpid)
+        stackedlist = stack_data_files_parallel(folder=stackpath, 
+                                                package=package, 
+                                                dpid=dpid,
+                                                progress=progress)
             
         # delete input files
         if not save_unzipped_files:
