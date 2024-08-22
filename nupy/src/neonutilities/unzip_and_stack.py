@@ -476,8 +476,8 @@ def stack_data_files_parallel(folder,
     dpnum = dpid[4:9]
     
     if cloud_mode:
-        filenames = [os.path.basename(f) for f in folder]
-        filepaths = folder
+        filenames = [os.path.basename(f) for f in folder[0]]
+        filepaths = folder[0]
         gcs = fs.GcsFileSystem(anonymous=True)
     else:
         # Get filenames without full path
@@ -667,7 +667,10 @@ def stack_data_files_parallel(folder,
         pdat = pdat.assign(publicationDate = pubval)
         
         # append release tag
-        if not cloud_mode:
+        if cloud_mode:
+            pdat["release"] = pdat["__filename"].map(folder[1])
+            releases.append(list(set(folder[1].values())))
+        else:
             pubrelr = re.compile("20[0-9]{6}T[0-9]{6}Z\\..*\\/")
             pubrelval = [pubrelr.search(p).group(0) for p in pdat["__filename"]]
             relval = [re.sub(".*\\.","",s) for s in pubrelval]
@@ -826,7 +829,7 @@ def stack_by_table(filepath,
     
     # determine contents of filepath and unzip as needed
     if cloud_mode:
-        files = filepath
+        files = filepath[0]
     else:
         # Is the filepath input a zip file or an unzipped file?
         if filepath[-4:] in ['.zip','.ZIP']:
@@ -892,7 +895,7 @@ def stack_by_table(filepath,
     
     # If all checks pass, unzip and stack files
     if cloud_mode:
-        stackedlist = stack_data_files_parallel(folder=files, package=package, 
+        stackedlist = stack_data_files_parallel(folder=filepath, package=package, 
                                                 dpid=dpid, progress=progress,
                                                 cloud_mode=True)
     

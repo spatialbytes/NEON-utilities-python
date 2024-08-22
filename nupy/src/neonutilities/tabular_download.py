@@ -45,6 +45,7 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
     """
 
     adict = lst["data"]["siteCodes"]
+    releasedict = {}
     
     # check expanded package status
     if package=="expanded":
@@ -103,14 +104,17 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
     flurl = []
     for i in range(0, len(pdict)):
       packdict = pdict[i].get("packages")
+      rdict = pdict[i].get("release")
       for j in range(0, len(packdict)):
         fdict = packdict[j].get("files")
         for k in range(0, len(fdict)):
           flurl.append(fdict[k].get("url"))
+          releasedict[re.sub(pattern="https://storage.googleapis.com/", 
+                             repl="", string=fdict[k].get("url"))] = rdict
           
     # if timeindex or tabl are set, subset the list of files
     if timeindex == "all" and tabl == "all":
-        return(flurl)
+        return([flurl, releasedict])
     else:
         if timeindex != "all" and tabl != "all":
             raise ValueError("Only one of timeindex or tabl can be specified, not both.")
@@ -122,9 +126,8 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
                 tt = re.compile("[.]"+tabl+"[.]|variables|readme|sensor_positions|categoricalCodes")
                 
             flurlsub = [f for f in flurl if tt.search(f)]
-            return(flurlsub)
-
-    
+            releasedictsub = {r: v for r, v in releasedict.items() if tt.search(r)}
+            return([flurlsub, releasedictsub])
 
 def zips_by_product(dpid, site="all", startdate=None, enddate=None, 
                     package="basic", release="current", 
