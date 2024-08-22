@@ -587,8 +587,12 @@ def stack_data_files_parallel(folder,
         stacklist[f"categoricalCodes_{dpnum}"] = cc
         
     # get readme file
-    if any(re.search('readme.20', path) for path in filepaths):
-        readmepath = get_recent_publication([path for path in filepaths if "readme.20" in path])[0]
+    if cloud_mode:
+        readmefiles = filepaths
+    else:
+        readmefiles = glob.glob(os.path.join(folder, '**', '*.txt'), recursive=True)
+    if any(re.search("readme.20", path) for path in readmefiles):
+        readmepath = get_recent_publication([path for path in readmefiles if "readme.20" in path])[0]
         if cloud_mode:
             rd = readme_url(readmepath)
         else:
