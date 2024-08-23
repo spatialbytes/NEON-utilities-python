@@ -940,6 +940,8 @@ def stack_by_table(filepath,
                     os.rmdir(d)
                 except:
                     pass
+            if os.listdir(stackpath) == [".DS_Store"]:
+                os.remove(stackpath+"/.DS_Store")
             if os.listdir(stackpath) == []:
                 os.rmdir(stackpath)
     

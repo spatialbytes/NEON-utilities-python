@@ -16,7 +16,6 @@ written by:
 import re
 import pandas as pd
 from .helper_mods.api_helpers import get_api
-import warnings
 
 # %% functions to validate inputs (should pull these out into another helper module??)
 
@@ -89,9 +88,7 @@ def get_eddy_issue_log(dpid, token=None):
             change_log_df['dpid'] = dpid
             eddy_issue_log_list.append(change_log_df)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
+    eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
     
     return eddy_issue_log_df
 
