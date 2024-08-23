@@ -497,10 +497,18 @@ def stack_data_files_parallel(folder,
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
         
         # stack frame files
-        logging.info("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
+        if progress:
+            logging.info("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
         
         # no variables files for these, have to let arrow infer. problem?
-        fdat = dataset.dataset(source=framefiles,format="csv")
+        if cloud_mode:
+            framebuckets = [re.sub(pattern="https://storage.neonscience.org/", 
+                                   repl="", string=b) for b in framefiles]
+            fdat = dataset.dataset(source=framebuckets, filesystem=gcs, 
+                                   format="csv")
+        else:
+            fdat = dataset.dataset(source=framefiles,format="csv")
+            
         fdattab = fdat.to_table()
         fpdat = fdattab.to_pandas()
                 
