@@ -765,7 +765,10 @@ def stack_data_files_parallel(folder,
         pdat = pdat.drop(columns=["__filename"])
 
         # add table to list
-        stacklist[j] = pdat
+        if j == "science_review_flags" or j == "sensor_positions":
+            stacklist[f"{j}_{dpnum}"] = pdat
+        else:
+            stacklist[j] = pdat
         
     # final variables file
     stacklist[f"variables_{dpnum}"] = pd.concat(vlist, ignore_index=True)
@@ -965,7 +968,11 @@ def stack_by_table(filepath,
                           mode="w+", encoding="utf-8") as f:
                     f.write(tk)
             else:
-                tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
+                if "readme" in k:
+                    tk.to_csv(f"{stacked_files_dir}/{k}.txt", 
+                              sep="\t", index=False)
+                else:
+                    tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
 
         return None
         
