@@ -24,7 +24,7 @@ def test_load_by_product_IS():
                             check_size=False, progress=False,
                             release='RELEASE-2024', cloud_mode=True)
     assert list(tlist.keys()) == ['variables_00005', 'readme_00005', 'IRBT_30_minute', 
-                                  'IRBT_1_minute', 'sensor_positions', 'science_review_flags', 
+                                  'IRBT_1_minute', 'sensor_positions_00005', 'science_review_flags_00005', 
                                   'issueLog_00005', 'citation_00005_RELEASE-2024']
     tm = tlist['IRBT_30_minute']
     assert len(tm) == 23424

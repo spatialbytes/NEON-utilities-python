@@ -203,9 +203,9 @@ def get_variables(v):
         nm = v.fieldName[i]
         typ = pa.string()
         if v.dataType[i]=="real":
-            typ = pa.float32()
+            typ = pa.float64()
         if v.dataType[i] in ["integer", "unsigned integer", "signed integer"]:
-            typ = pa.int32()
+            typ = pa.int64()
         if v.dataType[i] in ["string", "uri"]:
             typ = pa.string()
         if v.dataType[i] == "dateTime":
@@ -213,10 +213,10 @@ def get_variables(v):
                 typ = pa.timestamp("s", tz="UTC")
             else:
                 if v.pubFormat[i] in ["yyyy-MM-dd(floor)","yyyy-MM-dd"]:
-                    typ = pa.date32()
+                    typ = pa.date64()
                 else:
                     if v.pubFormat[i] in ["yyyy(floor)", "yyyy(round)"]:
-                        typ=pa.int32()
+                        typ=pa.int64()
                     else:
                         typ = pa.string()
         if i==0:
@@ -972,7 +972,14 @@ def stack_by_table(filepath,
                     tk.to_csv(f"{stacked_files_dir}/{k}.txt", 
                               sep="\t", index=False)
                 else:
-                    tk.to_csv(f"{stacked_files_dir}/{k}.csv", index=False)
+                    # Write numeric data to up to 15 digits, rounding to 
+                    # the precision just below the maximum. This mimics the 
+                    # default behavior in R, to ensure the two languages' 
+                    # versions of neonUtilities match. For an interesting 
+                    # discussion of the issues around this, see 
+                    # https://github.com/pandas-dev/pandas/issues/16452
+                    tk.to_csv(f"{stacked_files_dir}/{k}.csv", 
+                              index=False, float_format="%.15g")
 
         return None
         
