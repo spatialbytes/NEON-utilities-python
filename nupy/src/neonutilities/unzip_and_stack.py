@@ -947,10 +947,15 @@ def stack_by_table(filepath,
                 os.remove(stackpath+"/.DS_Store")
             if os.listdir(stackpath) == []:
                 os.rmdir(stackpath)
+                
+    # sort the dictionary of tables
+    mk = list(stackedlist.keys())
+    mk.sort()
+    stackedlistsort = {i: stackedlist[i] for i in mk}
     
     # write files to path if requested
     if savepath == "envt":
-        return stackedlist
+        return stackedlistsort
     else:
         if savepath is None:
             stacked_files_dir = os.path.join(stackpath, "stackedFiles")
@@ -961,8 +966,8 @@ def stack_by_table(filepath,
         if not os.path.exists(stacked_files_dir):
             os.makedirs(stacked_files_dir)
 
-        for k in stackedlist.keys():
-            tk = stackedlist[k]
+        for k in stackedlistsort.keys():
+            tk = stackedlistsort[k]
             if "citation" in k:
                 with open(f"{stacked_files_dir}/{k}.txt", 
                           mode="w+", encoding="utf-8") as f:

@@ -23,9 +23,9 @@ def test_load_by_product_IS():
                             startdate='2022-06', enddate='2022-07',
                             check_size=False, progress=False,
                             release='RELEASE-2024', cloud_mode=True)
-    assert list(tlist.keys()) == ['variables_00005', 'readme_00005', 'IRBT_30_minute', 
-                                  'IRBT_1_minute', 'sensor_positions_00005', 'science_review_flags_00005', 
-                                  'issueLog_00005', 'citation_00005_RELEASE-2024']
+    assert list(tlist.keys()) == ['IRBT_1_minute', 'IRBT_30_minute', 'citation_00005_RELEASE-2024', 
+                                  'issueLog_00005', 'readme_00005', 'science_review_flags_00005', 
+                                  'sensor_positions_00005', 'variables_00005']
     tm = tlist['IRBT_30_minute']
     assert len(tm) == 23424
     assert max(tm['endDateTime']) == pd.Timestamp('2022-08-01 00:00:00+0000', tz='UTC')
