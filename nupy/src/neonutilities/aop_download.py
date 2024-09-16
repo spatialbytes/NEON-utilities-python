@@ -132,7 +132,7 @@ def get_file_urls(urls, token=None):
     Returns
     --------
     all_file_url_df: pandas.DataFrame
-        A DataFrame containing information about all the files retrieved from the URLs. 
+        A DataFrame containing information about all the files retrieved from the URLs.
         The DataFrame includes columns for 'name', 'size', 'crc32c', and 'url' and 'release' of the files.
 
     release: str
@@ -151,8 +151,8 @@ def get_file_urls(urls, token=None):
 
     Notes
     --------
-    The function makes API calls to each URL in the 'urls' list and retrieves the file information. 
-    It also retrieves the release information from the response JSON. 
+    The function makes API calls to each URL in the 'urls' list and retrieves the file information.
+    It also retrieves the release information from the response JSON.
     If the API call fails, it prints a warning message and continues with the next URL.
     """
 
@@ -162,12 +162,11 @@ def get_file_urls(urls, token=None):
         response = get_api(api_url=url, token=token)
         if not response:
             logging.info(
-                f"Data file retrieval failed. Check NEON data portal for outage alerts.")
+                "Data file retrieval failed. Check NEON data portal for outage alerts.")
 
         # get release info
         release = response.json()['data']['release']
         releases.append(release)
-        #print(url, ':', release)
 
         file_url_dict = response.json()['data']['files']
         file_url_df = pd.DataFrame(data=file_url_dict)
@@ -217,7 +216,7 @@ def get_shared_flights(site):
     Notes
     --------
     The function reads the shared flights data from a CSV file named 
-    'shared_flights.csv' located in the '__resources__' directory. 
+    'shared_flights.csv' located in the '__resources__' directory.
 
     """
     shared_flights_file = (importlib_resources.files(
@@ -232,11 +231,7 @@ def get_shared_flights(site):
         if site in ['TREE', 'CHEQ', 'KONA', 'DCFS']:
             logging.info(
                 f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
-    # ...
-            # print(
-            #     f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.')
         else:
-            # print(f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year.\nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
             logging.info(
                 f'{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year.\nDownloading data from {flightSite}. Check data to confirm coverage of {site}.')
         site = flightSite
@@ -308,8 +303,8 @@ def by_file_aop(dpid,
                 chunk_size=1024,
                 token=None):
     """
-    This function queries the API for AOP data by site, year, and product, and downloads all
-    files found, preserving the original folder structure. It downloads files serially to
+    This function queries the API for AOP data by site, year, and product, and downloads all 
+    files found, preserving the original folder structure. It downloads files serially to 
     avoid API rate-limit overload, which may take a long time.
 
     Parameters
@@ -324,18 +319,18 @@ def by_file_aop(dpid,
         The four-digit year to search for data.
 
     include_provisional: bool, optional
-        Should provisional data be downloaded? Defaults to False. See
+        Should provisional data be downloaded? Defaults to False. See 
         https://www.neonscience.org/data-samples/data-management/data-revisions-releases 
         for details on the difference between provisional and released data.
 
     check_size: bool, optional
-        Should the user approve the total file size before downloading? Defaults to True. 
+        Should the user approve the total file size before downloading? Defaults to True.
         If you have sufficient storage space on your local drive, when working 
         in batch mode, or other non-interactive workflow, use check_size=False.
 
     savepath: str, optional
-        The file path to download to. Defaults to None, in which case the working directory is used. 
-        
+        The file path to download to. Defaults to None, in which case the working directory is used.
+
     chunk_size: integer, optional
         Size in bytes of chunk for chunked download. Defaults to 1024.
 
@@ -391,7 +386,7 @@ def by_file_aop(dpid,
         logging.info('No response from NEON API. Check internet connection')
         return
 
-#   # check that token was used
+    # check that token was used
     if token and 'x-ratelimit-limit' in response.headers:
         check_token(response)
         # if response.headers['x-ratelimit-limit'] == '200':
@@ -478,11 +473,11 @@ def by_file_aop(dpid,
     for file in tqdm(files):  
         download_file(url=file, savepath=download_path,
                       chunk_size=chunk_size, token=token)
-        
+
     # download issue log table
     ilog = get_issue_log(dpID=dpid, token=None)
     ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
-    
+
     # download citations
     if "PROVISIONAL" in releases:
         try:
@@ -495,9 +490,9 @@ def by_file_aop(dpid,
 
     rr = re.compile("RELEASE")
     rel = [r for r in releases if rr.search(r)]
-    if len(rel)==0:
-        releases=releases
-    if len(rel)==1:
+    if len(rel) == 0:
+        releases = releases
+    if len(rel) == 1:
         try:
             cit = get_citation(dpID=dpid, release=rel[0])
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
@@ -505,7 +500,6 @@ def by_file_aop(dpid,
                 f.write(cit)
         except:
             pass
-
 
     return
 
@@ -564,7 +558,7 @@ def by_tile_aop(dpid,
     savepath: str or pathlib.Path, optional
         The file path to download to. Defaults to None, in which case the working directory is used. 
         It can be a string or a pathlib.Path object.
-        
+
     chunk_size: integer, optional
         Size in bytes of chunk for chunked download. Defaults to 1024.
 
@@ -622,14 +616,14 @@ def by_tile_aop(dpid,
         easting = [float(e) for e in easting]
     except ValueError as e:
         logging.info(
-            f'The easting is invalid, this is required as a number or numeric list format, eg. 732000 or [732000, 733000]')
+            'The easting is invalid, this is required as a number or numeric list format, eg. 732000 or [732000, 733000]')
         print(e)
 
     try:
         northing = [float(e) for e in northing]
     except ValueError as e:
         logging.info(
-            f'The northing is invalid, this is required as a number or numeric list format, eg. 4713000 or [4713000, 4714000]')
+            'The northing is invalid, this is required as a number or numeric list format, eg. 4713000 or [4713000, 4714000]')
         print(e)
 
     # link easting and northing coordinates - as a list of tuples ?
@@ -642,7 +636,7 @@ def by_tile_aop(dpid,
 
     if len(easting) != len(northing):
         logging.info(
-            f'Easting and northing list lengths do not match, and/or contain null values. Cannot identify paired coordinates.')
+            'Easting and northing list lengths do not match, and/or contain null values. Cannot identify paired coordinates.')
         return
 
     # if token is an empty string, set to None
@@ -856,11 +850,11 @@ def by_tile_aop(dpid,
     for file in tqdm(files):  
         download_file(url=file, savepath=download_path,
                       chunk_size=chunk_size, token=token)
-        
+
     # download issue log table
     ilog = get_issue_log(dpID=dpid, token=None)
     ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
-    
+
     # download citations
     if "PROVISIONAL" in releases:
         try:
@@ -873,9 +867,9 @@ def by_tile_aop(dpid,
 
     rr = re.compile("RELEASE")
     rel = [r for r in releases if rr.search(r)]
-    if len(rel)==0:
-        releases=releases
-    if len(rel)==1:
+    if len(rel) == 0:
+        releases = releases
+    if len(rel) == 1:
         try:
             cit = get_citation(dpID=dpid, release=rel[0])
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
