@@ -387,6 +387,45 @@ def remove_srf_dups(srftab):
     srfsub = pd.DataFrame(srfsublist)
     return srfsub
 
+
+def align_sp_cols(sptab):
+    """
+
+    Small helper function to align column names between old and new sensor positions tables
+    
+    Parameters
+    --------
+    sptab: A pandas table of sensor positions records
+    
+    Return
+    --------
+    A pandas table of sensor positions records with only the current column names
+        
+    Created on 16 Sept 2024
+    
+    @author: Claire Lunch
+    """  
+    
+    oldcols = {"name": "sensorLocationID", 
+               "description": "sensorLocationDescription",
+               "start": "positionStartDateTime","end": "positionEndDateTime",
+               "referenceName": "referenceLocationID",
+               "referenceDescription": "referenceLocationIDDescription",
+               "referenceStart": "referenceLocationIDStartDateTime",
+               "referenceEnd": "referenceLocationIDEndDateTime",
+               "referenceLatitude": "locationReferenceLatitude",
+               "referenceLongitude": "locationReferenceLongitude",
+               "referenceElevation": "locationReferenceElevation"}
+    for k in list(oldcols.keys()):
+        if all(sptab[k].isna()):
+            sptab.drop(columns=k, inplace=True)
+        else:
+            sptab[oldcols[k]] = sptab[oldcols[k]].fillna(sptab[k])
+            sptab.drop(columns=k, inplace=True)
+
+    return sptab
+
+
 def format_readme(readmetab,
                   tables):
     """
@@ -560,8 +599,10 @@ def stack_data_files_parallel(folder,
                 v = pd.concat([v, science_review_variables], ignore_index=True)
 
         # if sensor positions are present but missing from variables file, add variables
-        if "sensor_positions" not in list(v["table"]):
-            if any("sensor_positions" in path for path in filepaths):
+        if any("sensor_positions" in path for path in filepaths):
+            sensor_positions_map=(importlib_resources.files(__resources__)/"sensor_positions_variables_mapping.csv")
+            sensor_positions_internal_variables=pd.read_csv(sensor_positions_map, index_col=None)
+            if "sensor_positions" not in list(v["table"]):
                 sensor_positions_file=(importlib_resources.files(__resources__)/"sensor_positions_variables.csv")
                 sensor_positions_variables=pd.read_csv(sensor_positions_file, index_col=None)
                 v = pd.concat([v, sensor_positions_variables], ignore_index=True)
@@ -618,6 +659,8 @@ def stack_data_files_parallel(folder,
         # create schema from variables file, for only this table and package
         # should we include an option to read in without schema if variables file is missing?
         vtab = arrowvars.filter(pa.compute.field("table") == j)
+        if j == "sensor_positions":
+            vtab = pa.Table.from_pandas(sensor_positions_internal_variables)
         
         if package=="basic":
             vtabpkg = vtab.filter(pa.compute.field("downloadPkg") == "basic")
@@ -760,6 +803,10 @@ def stack_data_files_parallel(folder,
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
             pdat = remove_srf_dups(pdat)
+            
+        # for sensor position files, align column names
+        if j =="sensor_positions":
+            pdat = align_sp_cols(pdat)
             
         # remove filename column
         pdat = pdat.drop(columns=["__filename"])

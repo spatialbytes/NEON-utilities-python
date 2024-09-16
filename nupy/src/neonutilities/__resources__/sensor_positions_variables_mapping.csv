@@ -1,0 +1,34 @@
+table,fieldName,description,dataType,units,downloadPkg,pubFormat
+sensor_positions,HOR.VER,"The combined value of the horizontal and vertical location indices specified in each data file name. The HOR index is a three-character alphanumeric code for the measurement locations within one horizontal plane. For example, if one surface measurement were made at each of five soil array plots, the number in the HOR field would range from 001-005. The VER index is a three-character alphanumeric code for the measurement locations within one vertical plane. For example, if one temperature measurement is made at each vertical level of a tower with 8 levels, the number in the VER field would range from 010-080.",string,NA,basic,asIs
+sensor_positions,sensorLocationID,The unique identifier for the location used by NEON for where the sensor was installed.,string,NA,basic,asIs
+sensor_positions,name,Former name of sensorLocationID field.,string,NA,basic,asIs
+sensor_positions,sensorLocationDescription,The description of the location where the sensor was installed.,string,NA,basic,asIs
+sensor_positions,description,Former name of sensorLocationDescription field.,string,NA,basic,asIs
+sensor_positions,positionStartDateTime,"The start date and time in UTC for the position information supplied for the location. If the position or orientation of the location changed over time, additional rows will supply the full history.",dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,start,Former name of positionStartDateTime field.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,positionEndDateTime,The end date and time in UTC for the position information supplied for the location. A blank value indicates that the position information was still valid for the location at the time of publishing.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,end,Former name of positionEndDateTime field.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,referenceLocationID,"The unique identifier for the reference location from which the xOffset, yOffset, and zOffset distances are measured.",string,NA,basic,asIs
+sensor_positions,referenceName,Former name of referenceLocationID field.,string,NA,basic,asIs
+sensor_positions,referenceLocationIDDescription,The description of the reference location.,string,NA,basic,asIs
+sensor_positions,referenceDescription,Former name of referenceLocationIDDescription field.,string,NA,basic,asIs
+sensor_positions,referenceLocationIDStartDateTime,"The start date and time in UTC for the position information supplied for the reference location. If the position of the reference location changed over time, additional rows will supply the full history.",dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,referenceStart,Former name of referenceLocationIDStartDateTime field.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,referenceLocationIDEndDateTime,The end date and time in UTC for the position information supplied for the reference location.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,referenceEnd,Former name of referenceLocationIDEndDateTime field.,dateTime,NA,basic,yyyy-MM-dd'T'HH:mm:ss'Z'(floor)
+sensor_positions,xOffset,"The offset along the x-axis of the local coordinate frame, in meters, from the reference location to the location where the sensor was installed.",real,meter,basic,*.##(round)
+sensor_positions,yOffset,"The offset along the y-axis of the local coordinate frame, in meters, from the reference location to the location where the sensor was installed.",real,meter,basic,*.##(round)
+sensor_positions,zOffset,"The offset along the z-axis of the local coordinate frame, in meters, from the reference location to the location where the sensor was installed. The z-axis is always aligned with up, positive values indicating heights above the reference location.",real,meter,basic,*.##(round)
+sensor_positions,pitch,"The elevation angle, in degrees, in the vertical plane at which the sensor is oriented relative to the horizontal plane. Some sensors differ from this convention. See the product detail page for any exceptions.",real,degrees,basic,*.##(round)
+sensor_positions,roll,"The roll angle at which the sensor is oriented, in degrees, about the longitudinal axis of the sensor",real,degrees,basic,*.##(round)
+sensor_positions,azimuth,"The azimuth or yaw angle, in degrees, at which the sensor is facing relative to true north. Some sensors differ from this convention. See the product detail page for any exceptions.",real,degrees,basic,*.##(round)
+sensor_positions,locationReferenceLatitude,"The geographic latitude, in degrees, of the reference location.",real,degrees,basic,*.######(round)
+sensor_positions,referenceLatitude,Former name of locationReferenceLatitude field.,real,degrees,basic,*.######(round)
+sensor_positions,locationReferenceLongitude,"The geographic longitude, in degrees, of the reference location.",real,degrees,basic,*.######(round)
+sensor_positions,referenceLongitude,Former name of locationReferenceLongitude field.,real,degrees,basic,*.######(round)
+sensor_positions,locationReferenceElevation,"The elevation, in meters, above mean sea level.",real,meter,basic,*.##(round)
+sensor_positions,referenceElevation,Former name of locationReferenceElevation field.,real,meter,basic,*.##(round)
+sensor_positions,eastOffset,"The offset along the cardinal east direction, in meters, from the reference location to the location where the sensor was installed.",real,meter,basic,*.##(round)
+sensor_positions,northOffset,"The offset along the cardinal north (true) direction, in meters, from the reference location to the location where the sensor was installed.",real,meter,basic,*.##(round)
+sensor_positions,xAzimuth,"The azimuth, in degrees, of the local x-axis with respect to true north, used to convert the distance offset measured along the local x-axis (xOffset) to the offset along the cardinal east direction (eastOffset).",real,degrees,basic,*.##(round)
+sensor_positions,yAzimuth,"The azimuth, in degrees, of the local y-axis with respect to true north, used to convert the distance offset measured along the local y-axis (yOffset) to the offset along the cardinal north direction (northOffset).",real,degrees,basic,*.##(round)
