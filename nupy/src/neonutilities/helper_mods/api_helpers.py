@@ -48,7 +48,7 @@ def get_api(api_url,
     """
     def get_status_code_meaning(status_code):
         return requests.status_codes._codes[status_code][0]
-        
+
     # Check internet connection
     try:
         check_connection = requests.get("https://data.neonscience.org/",
@@ -73,7 +73,7 @@ def get_api(api_url,
             if token is None:
                 response = requests.get(api_url, 
                                         headers={"accept": "application/json",
-                                        "User-Agent": usera})
+                                                 "User-Agent": usera})
             else:
                 response = requests.get(
                     api_url, headers={"X-API-TOKEN": token, 
@@ -87,8 +87,7 @@ def get_api(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-                    #print(f"x-ratelimit-remaining: {limit_remain}")
-                    
+
                     if int(limit_remain) < 1:
                         # Wait for the reset time
                         time_reset = response.headers.get('x-ratelimit-reset')
@@ -123,7 +122,7 @@ def get_api(api_url,
 
 
 def get_api_headers(api_url,
-            token=None):
+                    token=None):
     """
 
     Accesses the API with options to use the user-specific API token generated within neon.datascience user accounts.
@@ -145,11 +144,11 @@ def get_api_headers(api_url,
     """
     def get_status_code_meaning(status_code):
         return requests.status_codes._codes[status_code][0]
-        
+
     # Check internet connection
     try:
         check_connection = requests.head("https://data.neonscience.org/",
-                                        headers={"User-Agent": usera})
+                                         headers={"User-Agent": usera})
         if check_connection.status_code != 200:
             status_code = check_connection.status_code
             status_code_meaning = get_status_code_meaning(status_code)
@@ -169,8 +168,8 @@ def get_api_headers(api_url,
             # Construct URL either with or without token
             if token is None:
                 response = requests.head(api_url, 
-                                        headers={"accept": "application/json",
-                                        "User-Agent": usera})
+                                         headers={"accept": "application/json",
+                                                  "User-Agent": usera})
             else:
                 response = requests.head(
                     api_url, headers={"X-API-TOKEN": token, 
@@ -184,9 +183,6 @@ def get_api_headers(api_url,
                     # Retry get request if rate limit is reached
                     limit_remain = response.headers.get(
                         'x-ratelimit-remaining')
-
-                    #print(f"x-ratelimit-remaining: {limit_remain}")
-                    # this is printing the rate limit every time the function is used
 
                     if int(limit_remain) < 1:
                         # Wait for the reset time
@@ -221,7 +217,7 @@ def get_api_headers(api_url,
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
 
 
-def get_zip_urls(url_set, 
+def get_zip_urls(url_set,
                  package,
                  release,
                  include_provisional,
@@ -248,76 +244,76 @@ def get_zip_urls(url_set,
 
     @author: Claire Lunch
     """
-    
-    flnm=[]
-    z=[]
-    sz=[]
-    rel=[]
-    provflag=False
+
+    flnm = []
+    z = []
+    sz = []
+    rel = []
+    provflag = False
     if progress:
         logging.info("Finding available files")
-        
-    for i in tqdm(range(0,len(url_set)), disable=not progress):
-        
+
+    for i in tqdm(range(0, len(url_set)), disable=not progress):
+
         # get list of files from data endpoint
-        m_res=get_api(api_url=url_set[i], token=token)
-        m_di=m_res.json()
-        
+        m_res = get_api(api_url=url_set[i], token=token)
+        m_di = m_res.json()
+
         # only keep queried release
-        if release!="current":
-            if release!=m_di["data"]["release"]:
+        if release != "current":
+            if release != m_di["data"]["release"]:
                 continue
-            
+
         # if include_provisional=F, exclude provisional
         if not include_provisional:
-            if m_di["data"]["release"]=="PROVISIONAL":
+            if m_di["data"]["release"] == "PROVISIONAL":
                 provflag=True
                 continue
-            
+
         # check for no files
-        if not "packages" in list(m_di["data"]):
+        if "packages" not in list(m_di["data"]):
             logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
-            
-        if len(m_di["data"]["packages"])==0:
+
+        if len(m_di["data"]["packages"]) == 0:
             logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
-        
+
         # if package=expanded, check for expanded. reassign to basic if not found.
-        if package=="expanded":
-            if not package in [p["type"] for p in m_di["data"]["packages"]]:
+        if package == "expanded":
+            if package not in [p["type"] for p in m_di["data"]["packages"]]:
                 logging.info(f"No expanded package found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}. Basic package downloaded instead.")
-                package="basic"
-                
+                package = "basic"
+
         # get zip file url and file name
-        zi=[u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
-        h=get_api_headers(api_url=zi[0], token=token)
-        fltp=re.sub(pattern='"', repl="", 
-                    string=h.headers["content-disposition"])
-        flnmi=re.sub(pattern="inline; filename=", repl="", string=fltp)
-        
+        zi = [u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        h = get_api_headers(api_url=zi[0], token=token)
+        fltp = re.sub(pattern='"', repl="", 
+                      string=h.headers["content-disposition"])
+        flnmi = re.sub(pattern="inline; filename=", repl="", string=fltp)
+
         # get file sizes
-        szr=re.compile(package)
-        flszs=[siz["size"] for siz in m_di["data"]["files"] if szr.search(siz["url"])]
-        flszi=sum(flszs)
-        
+        szr = re.compile(package)
+        flszs = [siz["size"] for siz in m_di["data"]["files"] if szr.search(siz["url"])]
+        flszi = sum(flszs)
+
         # return url, file name, file size, and release
         flnm.append(flnmi)
         z.append(zi)
         sz.append(flszi)
         rel.append(m_di["data"]["release"])
-    
-    z=sum(z, [])
-    zpfiles=dict(flnm=flnm, z=z, sz=sz, rel=rel)
-        
+
+    z = sum(z, [])
+    zpfiles = dict(flnm=flnm, z=z, sz=sz, rel=rel)
+
     # provisional message
     if(provflag):
         logging.info("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
-        
-    return(zpfiles)
-      
 
-def get_tab_urls(url_set, 
+    return(zpfiles)
+
+
+def get_tab_urls(url_set,
                  package,
                  release,
                  include_provisional,
@@ -348,67 +344,67 @@ def get_tab_urls(url_set,
 
     @author: Claire Lunch
     """
-    
+
     # initiate file lists
-    flnm=[]
-    flpth=[]
-    z=[]
-    sz=[]
-    rel=[]
-    varf=[]
-    rdme=[]
-    sp=[]
-    
+    flnm = []
+    flpth = []
+    z = []
+    sz = []
+    rel = []
+    varf = []
+    rdme = []
+    sp = []
+
     # create regular expressions for file finding
-    vr=re.compile("variables")
-    rdr=re.compile("readme")
-    spr=re.compile("sensor_positions")
-    
-    if timeindex!="all":
-        tt=re.compile(str(timeindex)+"min|"+str(timeindex)+"_min|science_review_flags")
-        
-    if tabl!="all":
-        tb=re.compile("[.]"+tabl+"[.]")
-    
-    provflag=False
+    vr = re.compile("variables")
+    rdr = re.compile("readme")
+    spr = re.compile("sensor_positions")
+
+    if timeindex != "all":
+        tt = re.compile(str(timeindex) + "min|" + str(timeindex) + "_min|science_review_flags")
+
+    if tabl != "all":
+        tb = re.compile("[.]" + tabl + "[.]")
+
+    provflag = False
     if progress:
         logging.info("Finding available files")
-                
-    for i in tqdm(range(0,len(url_set)), disable=not progress):
-        
+
+    for i in tqdm(range(0, len(url_set)), disable=not progress):
+
         # get list of files from data endpoint
-        m_res=get_api(api_url=url_set[i], token=token)
-        m_di=m_res.json()
-        
+        m_res = get_api(api_url=url_set[i], token=token)
+        m_di = m_res.json()
+
         # only keep queried release
-        if release!="current":
-            if release!=m_di["data"]["release"]:
+        if release != "current":
+            if release != m_di["data"]["release"]:
                 continue
-            
+
         # if include_provisional=F, exclude provisional
         if not include_provisional:
-            if m_di["data"]["release"]=="PROVISIONAL":
+            if m_di["data"]["release"] == "PROVISIONAL":
                 provflag=True
                 continue
-        
+
         # subset to package. switch to basic if expanded not available
         # package name isn't always in file name (lab files, SRFs) but is always in url
-        pr=re.compile(package)
-        flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
-        if package=="expanded" and len(flsp)==0:
-            pr=re.compile("basic")
-            flsp=[f for f in m_di["data"]["files"] if pr.search(f["url"])]
-            
+        pr = re.compile(package)
+        flsp = [f for f in m_di["data"]["files"] if pr.search(f["url"])]
+        if package == "expanded" and len(flsp) == 0:
+            pr = re.compile("basic")
+            flsp = [f for f in m_di["data"]["files"] if pr.search(f["url"])]
+
         # check for no files
-        if len(flsp)==0:
+        if len(flsp) == 0:
             logging.info(f"No files found for site {m_di['data']['siteCode']} and month {m_di['data']['month']}")
             continue
-        
+
         # get zip file url and file name
-        zi = [u["url"] for u in m_di["data"]["packages"] if u["type"]==package]
+        zi = [u["url"] for u in m_di["data"]["packages"] if u["type"] == package]
         h = get_api_headers(api_url=zi[0], token=token)
         fltp = re.sub(pattern='"', repl="", 
-                    string=h.headers["content-disposition"])
+                      string=h.headers["content-disposition"])
         flpthit = re.sub(pattern="inline; filename=", repl="", string=fltp)
         flpthi = re.sub(pattern=".zip", repl="/", string=flpthit)
 
@@ -420,88 +416,87 @@ def get_tab_urls(url_set,
             f["name"] = flpthi+f["name"]
         for f in rdmei:
             f["name"] = flpthi+f["name"]
-        
+
         varf.append(varfi)
         rdme.append(rdmei)
-        if len(spi)>0:
+        if len(spi) > 0:
             for f in spi:
-                f["name"] = flpthi+f["name"]
+                f["name"] = flpthi + f["name"]
             sp.append(spi)
 
         # subset by averaging interval
-        if timeindex!="all":
-            flnmi=[flpthi+fl["name"] for fl in flsp if tt.search(fl["name"])]
-            flszi=[fl["size"] for fl in flsp if tt.search(fl["name"])]
-            zi=[fl["url"] for fl in flsp if tt.search(fl["name"])]
-            
+        if timeindex != "all":
+            flnmi = [flpthi+fl["name"] for fl in flsp if tt.search(fl["name"])]
+            flszi = [fl["size"] for fl in flsp if tt.search(fl["name"])]
+            zi = [fl["url"] for fl in flsp if tt.search(fl["name"])]
+
             # check for no files
-            if len(flnmi)==0:
+            if len(flnmi) == 0:
                 logging.info(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and averaging interval (time index) {timeindex}")
                 continue
-        
+
         # subset by table
-        if tabl!="all":
-            flnmi=[flpthi+fl["name"] for fl in flsp if tb.search(fl["name"])]
-            flszi=[fl["size"] for fl in flsp if tb.search(fl["name"])]
-            zi=[fl["url"] for fl in flsp if tb.search(fl["name"])]
-            
+        if tabl != "all":
+            flnmi = [flpthi+fl["name"] for fl in flsp if tb.search(fl["name"])]
+            flszi = [fl["size"] for fl in flsp if tb.search(fl["name"])]
+            zi = [fl["url"] for fl in flsp if tb.search(fl["name"])]
+
             # check for no files
-            if len(flnmi)==0:
+            if len(flnmi) == 0:
                 logging.info(f"No files found for site {m_di['data']['siteCode']}, month {m_di['data']['month']}, and table {tabl}")
                 continue
-                            
+
         # return url, file name, file size, and release
         flnm.append(flnmi)
         flpth.append(flpthi)
         z.append(zi)
         sz.append(flszi)
         rel.append(m_di["data"]["release"])
-    
+
     # get most recent metadata files from lists
     try:
-        varf=sum(varf, [])
-        varfl=get_recent(varf, "variables")
+        varf = sum(varf, [])
+        varfl = get_recent(varf, "variables")
         flnm.append([fl["name"] for fl in varfl])
         z.append([fl["url"] for fl in varfl])
         sz.append([fl["size"]for fl in varfl])
     except:
         pass
-    
+
     try:
-        rdme=sum(rdme, [])
-        rdfl=get_recent(rdme, "readme")
+        rdme = sum(rdme, [])
+        rdfl = get_recent(rdme, "readme")
         flnm.append([fl["name"] for fl in rdfl])
         z.append([fl["url"] for fl in rdfl])
         sz.append([fl["size"] for fl in rdfl])
     except:
         pass
-    
+
     # get most recent sensor positions file for each site
-    if len(sp)>0:
-        sp=sum(sp, [])
-        sr=re.compile("\/[A-Z]{4}\/")
-        sites=[sr.search(f["url"]).group(0) for f in sp]
-        sites=list(set(sites))
-        sites=[re.sub(pattern="\/", repl="", string=s) for s in sites]
+    if len(sp) > 0:
+        sp = sum(sp, [])
+        sr = re.compile("\/[A-Z]{4}\/")
+        sites = [sr.search(f["url"]).group(0) for f in sp]
+        sites = list(set(sites))
+        sites = [re.sub(pattern="\/", repl="", string=s) for s in sites]
         try:
             for s in sites:
-                spfl=get_recent(sp, s)
+                spfl = get_recent(sp, s)
                 flnm.append([fl["name"] for fl in spfl])
                 z.append([fl["url"] for fl in spfl])
                 sz.append([fl["size"] for fl in spfl])
         except:
             pass
 
-    
-    z=sum(z, [])
-    flnm=sum(flnm, [])
-    sz=sum(sz, [])
-    tbfiles=dict(flnm=flnm, flpth=flpth, z=z, sz=sz, rel=rel)
-        
+    z = sum(z, [])
+    flnm = sum(flnm, [])
+    sz = sum(sz, [])
+    tbfiles = dict(flnm=flnm, flpth=flpth, z=z, sz=sz, rel=rel)
+
     # provisional message
     if(provflag):
         logging.info("Provisional data were excluded from available files list. To download provisional data, use input parameter include_provisional=True.")
-        
+
     return(tbfiles)
 
 
@@ -528,11 +523,11 @@ def download_urls(url_set,
 
     @author: Claire Lunch
     """
-    
+
     if progress:
         logging.info("Downloading files")
-        
-    for i in tqdm(range(0,len(url_set["z"])), disable=not progress):
+
+    for i in tqdm(range(0, len(url_set["z"])), disable=not progress):
 
         try:
             if token is None:
@@ -542,7 +537,7 @@ def download_urls(url_set,
                         with open(outpath+url_set["flnm"][i], "wb") as out_file:
                             content = requests.get(url_set["z"][i], stream=True, 
                                                    headers={"accept": "application/json",
-                                                   "User-Agent": usera}, 
+                                                            "User-Agent": usera}, 
                                                    timeout=(10, 120)).content
                             out_file.write(content)
                         j = j+5
@@ -566,11 +561,11 @@ def download_urls(url_set,
                         logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
                         j = j+1
                         time.sleep(5)
-            
+
         except:
             logging.info(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
             pass
-        
+
     return None
 
 
@@ -588,7 +583,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
 
     chunk_size: 
         Size in bytes of chunks for chunked download
-        
+
     token: str, optional
         User-specific API token generated within neon.datascience user accounts. If provided, it will be used for authentication.
 
@@ -612,22 +607,22 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     This is for downloading the readme.txt file which contains detailed information about the data package, issue logs, etc.
     https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP3.30015.001/SCBI/20230601T000000--20230701T000000/basic/NEON.D02.SCBI.DP3.30015.001.readme.20240206T001418Z.txt
     """
-    
+
     pathparts = url.split("/")
     file_path = "/".join(pathparts[3:len(pathparts)])
-    
+
     file_fullpath = savepath + "/" + file_path
     os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
-        
+
     try:
         if token is None:
             j = 0
             while j<3:
                 try:
                     r = requests.get(url, stream=True, 
-                                 headers={"accept": "application/json",
-                                          "User-Agent": usera},
-                                 timeout=(10, 120))
+                                     headers={"accept": "application/json",
+                                              "User-Agent": usera},
+                                     timeout=(10, 120))
                     j = j+5
                 except:
                     logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
@@ -647,7 +642,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
                     logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
                     j = j+1
                     time.sleep(5)
-                    
+
         with open(file_fullpath, 'wb') as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:
@@ -657,7 +652,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     except:
         logging.info(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
         pass
-    
+
     return
 
 
@@ -685,8 +680,5 @@ def readme_url(readmepath):
     rdtxt = rdres.text
     rdlst = rdtxt.split("\n")
     rdfrm = pd.DataFrame(rdlst)
-    
+
     return(rdfrm)
-    
-    
-    

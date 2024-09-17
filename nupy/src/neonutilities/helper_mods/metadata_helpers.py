@@ -4,6 +4,7 @@
 import re
 import os
 
+
 def get_recent(fl_set, fltype):
     """
 
@@ -24,25 +25,25 @@ def get_recent(fl_set, fltype):
     """
 
     # subset to files of specified type
-    ty=re.compile(fltype)
-    flt=[f for f in fl_set if ty.search(f["name"])]
-    
-    if len(flt)==0:
+    ty = re.compile(fltype)
+    flt = [f for f in fl_set if ty.search(f["name"])]
+
+    if len(flt) == 0:
         return None
-    
+
     # get max date stamp in subset
-    pdater=re.compile("[0-9]{8}T[0-9]{6}Z")
-    flvar=[pdater.search(os.path.basename(f["name"])).group(0) for f in flt]
-    
-    if len(flvar)==0:
+    pdater = re.compile("[0-9]{8}T[0-9]{6}Z")
+    flvar = [pdater.search(os.path.basename(f["name"])).group(0) for f in flt]
+
+    if len(flvar) == 0:
         return None
-    
-    recdate=max(flvar)
-    
+
+    recdate = max(flvar)
+
     # get url matching max date stamp
-    maxr=re.compile(recdate)
-    flmax=[f for f in flt if maxr.search(os.path.basename(f["name"]))]
-    
+    maxr = re.compile(recdate)
+    flmax = [f for f in flt if maxr.search(os.path.basename(f["name"]))]
+
     return [flmax[0]]
 
 

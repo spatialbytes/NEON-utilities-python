@@ -32,7 +32,7 @@ def get_citation(dpid, release):
     """
 
     if release == "PROVISIONAL":
-        
+
         # construct citation from template
         citI = "@misc{DPID/provisional,\n  doi = {},\n  url = {https://data.neonscience.org/data-products/DPID},\n  author = {{National Ecological Observatory Network (NEON)}},\n  language = {en},\n  title = {NAME (DPID)},\n  publisher = {National Ecological Observatory Network (NEON)},\n  year = {YEAR}\n}"
         citDP = citI.replace("DPID", dpid)
@@ -59,7 +59,7 @@ def get_citation(dpid, release):
             print("There are no data with dpid=" + dpid + 
                   " and release=" + release)
             return relinfo
-        
+
         else:
             doi = relinfo["productDoi"]["url"]
             doi_req = requests.get(doi, 

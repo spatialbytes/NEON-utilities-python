@@ -14,7 +14,6 @@ Notes:
 """
 
 import unittest
-import pandas as pd
 from neonutilities import get_issue_log
 
 

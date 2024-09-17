@@ -28,24 +28,17 @@ Notes:
 # import required packages
 
 import os
-import io
-import sys
-import shutil
-from pathlib import Path
-import glob
-import pandas as pd
 from neonutilities import by_file_aop, by_tile_aop
 
 import pytest
 import unittest
-from unittest import mock
 from unittest.mock import patch
 from parameterized import parameterized
 
 # read in token from os.environ
 token = os.environ.get("NEON_TOKEN")
 
-### Test invalid inputs and make sure informational messages display correctly ###
+# Test invalid inputs and make sure informational messages display correctly ###
 
 # similar tests for by_file_aop and by_tile_aop, with some additional tests for by_tile_aop
 
@@ -137,7 +130,7 @@ class TestByFileAOP(unittest.TestCase):
         with self.assertLogs(level='INFO') as cm:
             by_file_aop(dpid="DP3.30015.001", site=self.site, year=2020)
             self.assertIn(
-                f'INFO:root:There are no data available at the selected site and year.', cm.output)
+                'INFO:root:There are no data available at the selected site and year.', cm.output)
 
     @patch('builtins.input', return_value='n')
     def test_check_download_size_message(self, input_mock):
@@ -162,7 +155,7 @@ class TestByFileAOP(unittest.TestCase):
         with self.assertLogs(level='INFO') as cm:
             by_file_aop(dpid="DP3.30015.001", site="SCBI", year=2023)
             self.assertIn(
-                f'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
+                'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
 
     # provisional included, and no data available
     @patch('builtins.input', return_value='n')
@@ -175,7 +168,7 @@ class TestByFileAOP(unittest.TestCase):
             by_file_aop(dpid="DP3.30015.001", site="SCBI",
                         year=2023, include_provisional=True)
             self.assertIn(
-                f'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
+                'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
     # other scenarios- check messages but don't donwload the data ?
     # provisional not included, and data available
@@ -262,7 +255,7 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid="DP3.30015.001", site=self.site,
                         year=2020, easting=self.easting, northing=self.northing)
             self.assertIn(
-                f'INFO:root:There are no data available at the selected site and year.', cm.output)
+                'INFO:root:There are no data available at the selected site and year.', cm.output)
 
     def test_no_data_files_found_message(self):
         """
@@ -272,7 +265,7 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid="DP3.30015.001", site=self.site,
                         year=2020, easting=564000, northing=4900000)
             self.assertIn(
-                f'INFO:root:There are no data available at the selected site and year.', cm.output)
+                'INFO:root:There are no data available at the selected site and year.', cm.output)
 
     @patch('builtins.input', return_value='n')
     def test_check_download_size_message(self, input_mock):
@@ -300,7 +293,7 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid=self.dpid, site=self.site, year=2023,
                         easting=self.easting, northing=self.northing)
             self.assertIn(
-                f'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
+                'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
 
     # provisional included, and no data available
     @patch('builtins.input', return_value='n')
@@ -313,7 +306,7 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid=self.dpid, site=self.site, year=2023,
                         include_provisional=True, easting=self.easting, northing=self.northing)
             self.assertIn(
-                f'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
+                'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
     @patch('builtins.input', return_value='n')
     @patch('importlib.import_module')

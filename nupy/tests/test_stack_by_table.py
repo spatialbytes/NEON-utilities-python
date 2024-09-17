@@ -10,10 +10,8 @@ Unit tests for stack_by_table()
 
 # import required packages
 from neonutilities import stack_by_table
-
-import pytest
-import logging
 import pandas as pd
+
 
 def test_stack_by_table_mini():
     """
@@ -23,5 +21,3 @@ def test_stack_by_table_mini():
     litterlst = stack_by_table("./testdata/NEON_litterfall.zip", savepath="envt", progress=False)
     litterchk = pd.read_csv("./testdata/NEON_litterfall_baseline/stackedFiles/ltr_litterLignin.csv")
     assert all(litterchk == litterlst["ltr_litterLignin"]) is True
-
-
