@@ -149,6 +149,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
     release: Data release to download. Defaults to the most recent release.
     timeindex: Either the string 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
     tabl: Either the string 'all', or the name of a single data table to download. Defaults to 'all'.
+    check_size: True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
     include_provisional: Should Provisional data be returned in the download? Defaults to False.
     cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, zips_by_product() returns a list of files rather than downloading them. Defaults to False.
     progress: Should the function display progress bars as it runs? Defaults to True

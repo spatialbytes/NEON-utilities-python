@@ -566,7 +566,7 @@ def by_tile_aop(dpid,
         User-specific API token generated within neon.datascience user accounts.
 
     verbose: bool, optional
-        If set to True, the function will print
+        If set to True, the function will print information about the downloaded tiles.
 
     Return
     --------

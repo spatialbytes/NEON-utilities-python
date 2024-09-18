@@ -34,8 +34,7 @@ varschema = pa.schema([
 ])
 
 
-def unzip_zipfile_parallel(zippath,
-                           n_cores=1):
+def unzip_zipfile_parallel(zippath):
     """
 
     Unzip a zip file either at just the top level or recursively through the file.
@@ -43,7 +42,6 @@ def unzip_zipfile_parallel(zippath,
     Parameters
     --------
     zippath: The filepath of the input file.
-    n_cores: Number of cores to use for parallelization. Defaults to 1.
 
     Return
     --------
@@ -67,8 +65,6 @@ def unzip_zipfile_parallel(zippath,
     else:
         outpath = zippath
         level = "in"
-    if not isinstance(n_cores, int):
-        n_cores = 1
 
     if level == "all":
         zip_ref = zipfile.ZipFile(zippath, 'r')
@@ -482,7 +478,6 @@ def format_readme(readmetab,
 def stack_data_files_parallel(folder,
                               package,
                               dpid,
-                              n_cores=1,
                               progress=True,
                               cloud_mode=False
                               ):
@@ -495,7 +490,6 @@ def stack_data_files_parallel(folder,
     folder: The filepath location of the unzipped NEON download package folder.
     package: basic or expanded data package
     dpid: Data product ID of product to stack.
-    n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     progress: Should a progress bar be displayed?
     cloud_mode: cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
 
@@ -851,7 +845,6 @@ def stack_data_files_parallel(folder,
 def stack_by_table(filepath,
                    savepath=None,
                    save_unzipped_files=False,
-                   n_cores=1,
                    progress=True,
                    cloud_mode=False
                    ):
@@ -864,7 +857,6 @@ def stack_by_table(filepath,
     filepath: The location of the zip file or downloaded files.
     savepath: The location to save the output files to. (optional)
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
-    n_cores: The number of cores to parallelize the stacking procedure. To automatically use the maximum number of cores on your machine we suggest setting nCores=parallel::detectCores(). By default it is set to a single core. # Need to find python equivalent of parallelizing and update this input variable description.
     progress: Should a progress bar be displayed?
     cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
 
@@ -1052,6 +1044,7 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
     release: Data release to download. Defaults to the most recent release.
     timeindex: Either the string 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
     tabl: Either the string 'all', or the name of a single data table to download. Defaults to 'all'.
+    check_size: True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
     include_provisional: Should Provisional data be returned in the download? Defaults to False.
     cloud_mode: Use cloud mode to transfer files cloud-to-cloud? Should only be used if the destination location is in the cloud. Defaults to False.
     progress: Should the function display progress bars as it runs? Defaults to True
