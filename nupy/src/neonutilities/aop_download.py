@@ -485,7 +485,7 @@ def by_file_aop(dpid,
             with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
-        except:
+        except Exception:
             pass
 
     rr = re.compile("RELEASE")
@@ -498,7 +498,7 @@ def by_file_aop(dpid,
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
-        except:
+        except Exception:
             pass
 
     return
@@ -862,7 +862,7 @@ def by_tile_aop(dpid,
             with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
-        except:
+        except Exception:
             pass
 
     rr = re.compile("RELEASE")
@@ -875,7 +875,7 @@ def by_tile_aop(dpid,
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
-        except:
+        except Exception:
             pass
     
     return

@@ -310,7 +310,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
         avail["error"]["status"]
         logging.info(f"No data found for product {dpid}")
         return
-    except:
+    except Exception:
         pass
 
     # check that token was used

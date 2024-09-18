@@ -799,7 +799,7 @@ def stack_data_files_parallel(folder,
                     pdat.sort_values(by=['siteID', datevar],
                                      ascending=[True,True],
                                      inplace=True, ignore_index=True)
-            except:
+            except Exception:
                 pass
 
         # for SRF files, remove duplicates and modified records
@@ -834,7 +834,7 @@ def stack_data_files_parallel(folder,
         if "PROVISIONAL" in releases:
             try:
                 stacklist[f"citation_{dpnum}_PROVISIONAL"] = get_citation(dpid=dpid, release="PROVISIONAL")
-            except:
+            except Exception:
                 pass
         relr = re.compile("RELEASE-20[0-9]{2}")
         rs = [relr.search(r).group(0) for r in releases if relr.search(r)]
@@ -842,7 +842,7 @@ def stack_data_files_parallel(folder,
             stacklist[f"citation_{dpnum}_{rs[0]}"] = get_citation(dpid=dpid, release=rs[0])
         if len(rs) > 1:
             logging.info("Multiple data releases were stacked together. This is not appropriate, check your input data.")
-    except:
+    except Exception:
         pass
 
     return stacklist
@@ -980,13 +980,13 @@ def stack_by_table(filepath,
             for fl in ufl:
                 try:
                     os.remove(fl)
-                except:
+                except Exception:
                     pass
             dirlist = glob.glob(stackpath+"/*", recursive=True)
             for d in dirlist:
                 try:
                     os.rmdir(d)
-                except:
+                except Exception:
                     pass
             if os.listdir(stackpath) == [".DS_Store"]:
                 os.remove(stackpath + "/.DS_Store")

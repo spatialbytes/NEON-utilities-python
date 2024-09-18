@@ -58,8 +58,8 @@ def get_api(api_url,
             status_code_meaning = get_status_code_meaning(status_code)
             raise ConnectionError(
                 f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
-    except:  # ConnectionError as e
-        raise ConnectionError("No internet connection detected. Cannot access NEON API.\n")
+    except Exception:  # ConnectionError as e
+        raise ConnectionError("Connection error. Cannot access NEON API.\n")
 
     # Make 5 request attempts. If the rate limit is reached, pause for the
     # burst reset time to try again.
@@ -116,7 +116,7 @@ def get_api(api_url,
 
             return response
 
-        except:
+        except Exception:
             raise ConnectionError(
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
 
@@ -154,7 +154,7 @@ def get_api_headers(api_url,
             status_code_meaning = get_status_code_meaning(status_code)
             raise ConnectionError(
                 f"Request failed with status code {status_code}, indicating '{status_code_meaning}'\n")
-    except:  # ConnectionError as e
+    except Exception:  # ConnectionError as e
         raise ConnectionError("No internet connection detected. Cannot access NEON API.\n")
 
     # Make 5 request attempts. If the rate limit is reached, pause for the
@@ -212,7 +212,7 @@ def get_api_headers(api_url,
 
             return response
 
-        except:
+        except Exception:
             raise ConnectionError(
                 "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
 
@@ -460,7 +460,7 @@ def get_tab_urls(url_set,
         flnm.append([fl["name"] for fl in varfl])
         z.append([fl["url"] for fl in varfl])
         sz.append([fl["size"]for fl in varfl])
-    except:
+    except Exception:
         pass
 
     try:
@@ -469,7 +469,7 @@ def get_tab_urls(url_set,
         flnm.append([fl["name"] for fl in rdfl])
         z.append([fl["url"] for fl in rdfl])
         sz.append([fl["size"] for fl in rdfl])
-    except:
+    except Exception:
         pass
 
     # get most recent sensor positions file for each site
@@ -485,7 +485,7 @@ def get_tab_urls(url_set,
                 flnm.append([fl["name"] for fl in spfl])
                 z.append([fl["url"] for fl in spfl])
                 sz.append([fl["size"] for fl in spfl])
-        except:
+        except Exception:
             pass
 
     z = sum(z, [])
@@ -541,7 +541,7 @@ def download_urls(url_set,
                                                    timeout=(10, 120)).content
                             out_file.write(content)
                         j = j+5
-                    except:
+                    except Exception:
                         logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
                         j = j+1
                         time.sleep(5)
@@ -557,12 +557,12 @@ def download_urls(url_set,
                                                    timeout=(10, 120)).content
                             out_file.write(content)
                         j = j+5
-                    except:
+                    except Exception:
                         logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
                         j = j+1
                         time.sleep(5)
 
-        except:
+        except Exception:
             logging.info(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
             pass
 
@@ -624,7 +624,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
                                               "User-Agent": usera},
                                      timeout=(10, 120))
                     j = j+5
-                except:
+                except Exception:
                     logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
                     j = j+1
                     time.sleep(5)
@@ -638,7 +638,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
                                               "User-Agent": usera},
                                      timeout=(10, 120))
                     j = j+5
-                except:
+                except Exception:
                     logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
                     j = j+1
                     time.sleep(5)
@@ -649,7 +649,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
                     f.write(chunk)
         r.close()
 
-    except:
+    except Exception:
         logging.info(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
         pass
 

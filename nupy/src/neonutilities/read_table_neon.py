@@ -39,7 +39,7 @@ def read_table_neon(data_file,
     if isinstance(var_file, str):
         try:
             v = pd.read_csv(var_file)
-        except:
+        except Exception:
             logging.info("Table read failed because var_file must be either a NEON variables table or a file path to a NEON variables table.")
             return
 
@@ -102,15 +102,15 @@ def date_convert(dates):
 
     try:
         dout = pd.to_datetime(dates, format="%Y-%m-%dT%H:%M:%S", utc=True)
-    except:
+    except Exception:
         try:
             dout = pd.to_datetime(dates, format="%Y-%m-%dT%H:%M", utc=True)
-        except:
+        except Exception:
             try:
                 dout = pd.to_datetime(dates, format="%Y-%m-%dT%H", utc=True)
-            except:
+            except Exception:
                 try:
                     dout = pd.to_datetime(dates, format="%Y-%m-%d", utc=True)
-                except:
+                except Exception:
                     dout = dates
     return dout
