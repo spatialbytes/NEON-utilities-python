@@ -14,7 +14,7 @@ Notes:
 """
 
 import unittest
-from neonutilities import get_issue_log
+from src.neonutilities import get_issue_log
 
 
 class TestGetIssueLog(unittest.TestCase):

@@ -11,7 +11,7 @@ Mocking is not used here, tests access API resources.
 """
 
 # import required packages
-from neonutilities import zips_by_product
+from src.neonutilities import zips_by_product
 import pytest
 import logging
 
