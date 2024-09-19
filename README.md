@@ -13,6 +13,11 @@ See [NEON Data Tutorials](https://www.neonscience.org/resources/learning-hub/tut
 
 This package is actively maintained - please post any issues here and tag @bhass-neon, @znickerson8, and/or @cklunch.
 
+Credits & Acknowledgements
+---
+
+The National Ecological Observatory Network is a project solely funded by the National Science Foundation and managed under cooperative agreement by Battelle. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
+
 
 License
 ---
