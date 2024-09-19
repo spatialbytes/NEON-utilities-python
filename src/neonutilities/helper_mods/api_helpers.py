@@ -475,10 +475,10 @@ def get_tab_urls(url_set,
     # get most recent sensor positions file for each site
     if len(sp) > 0:
         sp = sum(sp, [])
-        sr = re.compile("\/[A-Z]{4}\/")
+        sr = re.compile("[/][A-Z]{4}[/]")
         sites = [sr.search(f["url"]).group(0) for f in sp]
         sites = list(set(sites))
-        sites = [re.sub(pattern="\/", repl="", string=s) for s in sites]
+        sites = [re.sub(pattern="/", repl="", string=s) for s in sites]
         try:
             for s in sites:
                 spfl = get_recent(sp, s)

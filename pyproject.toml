@@ -18,6 +18,7 @@ dependencies = [
     "importlib-resources",
     "importlib.metadata",
     "pandas",
+    "parameterized",
     "pyarrow",
     "pyproj",
     "requests",
