@@ -5,4 +5,3 @@ from .get_issue_log import get_issue_log
 from .read_table_neon import read_table_neon
 from .unzip_and_stack import stack_by_table
 from .unzip_and_stack import load_by_product
-from . import helper_mods
