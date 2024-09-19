@@ -9,7 +9,7 @@ Unit tests for load_by_product()
 """
 
 # import required packages
-from src.neonutilities import load_by_product
+from src.neonutilities.unzip_and_stack import load_by_product
 import pandas as pd
 
 

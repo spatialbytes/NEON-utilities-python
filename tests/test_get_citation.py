@@ -12,7 +12,7 @@ Mocking is not used here, tests access API resources.
 
 # import required packages
 import os
-from src.neonutilities import get_citation
+from src.neonutilities.citation import get_citation
 
 # read in token from os.environ
 token = os.environ.get("NEON_TOKEN")

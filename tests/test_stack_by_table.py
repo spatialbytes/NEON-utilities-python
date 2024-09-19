@@ -9,7 +9,7 @@ Unit tests for stack_by_table()
 """
 
 # import required packages
-from src.neonutilities import stack_by_table
+from src.neonutilities.unzip_and_stack import stack_by_table
 import pandas as pd
 
 

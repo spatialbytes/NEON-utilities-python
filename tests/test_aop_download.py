@@ -28,7 +28,7 @@ Notes:
 # import required packages
 
 import os
-from src.neonutilities import by_file_aop, by_tile_aop
+from src.neonutilities.aop_download import by_file_aop, by_tile_aop
 
 import pytest
 import unittest
