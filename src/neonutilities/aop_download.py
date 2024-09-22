@@ -475,13 +475,13 @@ def by_file_aop(dpid,
                       chunk_size=chunk_size, token=token)
 
     # download issue log table
-    ilog = get_issue_log(dpID=dpid, token=None)
+    ilog = get_issue_log(dpid=dpid, token=None)
     ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
 
     # download citations
     if "PROVISIONAL" in releases:
         try:
-            cit = get_citation(dpID=dpid, release="PROVISIONAL")
+            cit = get_citation(dpid=dpid, release="PROVISIONAL")
             with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
@@ -494,7 +494,7 @@ def by_file_aop(dpid,
         releases = releases
     if len(rel) == 1:
         try:
-            cit = get_citation(dpID=dpid, release=rel[0])
+            cit = get_citation(dpid=dpid, release=rel[0])
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
@@ -852,13 +852,13 @@ def by_tile_aop(dpid,
                       chunk_size=chunk_size, token=token)
 
     # download issue log table
-    ilog = get_issue_log(dpID=dpid, token=None)
+    ilog = get_issue_log(dpid=dpid, token=None)
     ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
 
     # download citations
     if "PROVISIONAL" in releases:
         try:
-            cit = get_citation(dpID=dpid, release="PROVISIONAL")
+            cit = get_citation(dpid=dpid, release="PROVISIONAL")
             with open(f"{download_path}/citation_{dpid}_PROVISIONAL.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
@@ -871,7 +871,7 @@ def by_tile_aop(dpid,
         releases = releases
     if len(rel) == 1:
         try:
-            cit = get_citation(dpID=dpid, release=rel[0])
+            cit = get_citation(dpid=dpid, release=rel[0])
             with open(f"{download_path}/citation_{dpid}_{rel[0]}.txt", 
                       mode="w+", encoding="utf-8") as f:
                 f.write(cit)
