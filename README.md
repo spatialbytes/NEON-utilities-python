@@ -9,7 +9,30 @@ The neonutilities Python package provides utilities for discovering, downloading
 
 neonutilities is available on PyPi and most users will want to install it from there. If you want to use the current development version, you can install from GitHub, but be warned that the version here may not be stable.
 
-See [NEON Data Tutorials](https://www.neonscience.org/resources/learning-hub/tutorials) for more information, particularly the [Download and Explore](https://www.neonscience.org/resources/learning-hub/tutorials/download-explore-neon-data) and [neonUtilities](https://www.neonscience.org/resources/learning-hub/tutorials/neondatastackr) tutorials.
+Brief examples below; see [NEON Data Tutorials](https://www.neonscience.org/resources/learning-hub/tutorials) for more information, particularly the [Download and Explore](https://www.neonscience.org/resources/learning-hub/tutorials/download-explore-neon-data) and [neonUtilities](https://www.neonscience.org/resources/learning-hub/tutorials/neondatastackr) tutorials.
+
+```
+$ pip install neonutilities
+```
+
+```
+import neonutilities as nu
+
+bird = nu.load_by_product(dpid="DP1.10003.001",
+						  site="RMNP",
+						  package="expanded",
+						  release="RELEASE-2024",
+						  token=os.environ.get("NEON_TOKEN"))
+							   
+nu.by_tile_aop(dpid="DP3.30015.001",
+			   site="WREF",
+			   year=2022,
+			   easting=[571000,578000],
+			   northing=[5079000,5080000],
+			   savepath="filepath on your machine",
+			   token=os.environ.get("NEON_TOKEN"))
+
+```
 
 This package is actively maintained - please post any issues here and tag @bhass-neon, @znickerson8, and/or @cklunch.
 
