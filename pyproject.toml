@@ -14,9 +14,6 @@ description="A package for accessing and wrangling data generated and published 
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "datetime",
-    "importlib-resources",
-    "importlib.metadata",
     "pandas",
     "parameterized",
     "pyarrow",

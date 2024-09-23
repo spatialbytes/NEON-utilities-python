@@ -25,7 +25,7 @@ import logging
 import os
 from tqdm import tqdm
 import importlib
-import importlib_resources
+import importlib.resources
 from . import __resources__
 from .helper_mods.api_helpers import get_api
 from .helper_mods.api_helpers import download_file
@@ -219,7 +219,7 @@ def get_shared_flights(site):
     'shared_flights.csv' located in the '__resources__' directory.
 
     """
-    shared_flights_file = (importlib_resources.files(
+    shared_flights_file = (importlib.resources.files(
         __resources__) / 'shared_flights.csv')
 
     shared_flights_df = pd.read_csv(shared_flights_file)

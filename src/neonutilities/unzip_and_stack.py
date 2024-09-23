@@ -10,7 +10,7 @@ import zipfile
 import platform
 import glob
 import re
-import importlib_resources
+import importlib.resources
 from tqdm import tqdm
 from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
@@ -590,16 +590,16 @@ def stack_data_files_parallel(folder,
         # if science review flags are present but missing from variables file, add variables
         if "science_review_flags" not in list(v["table"]):
             if any("science_review_flags" in path for path in filepaths):
-                science_review_file = (importlib_resources.files(__resources__)/"science_review_variables.csv")
+                science_review_file = (importlib.resources.files(__resources__)/"science_review_variables.csv")
                 science_review_variables = pd.read_csv(science_review_file, index_col=None)
                 v = pd.concat([v, science_review_variables], ignore_index=True)
 
         # if sensor positions are present but missing from variables file, add variables
         if any("sensor_positions" in path for path in filepaths):
-            sensor_positions_map = (importlib_resources.files(__resources__)/"sensor_positions_variables_mapping.csv")
+            sensor_positions_map = (importlib.resources.files(__resources__)/"sensor_positions_variables_mapping.csv")
             sensor_positions_internal_variables = pd.read_csv(sensor_positions_map, index_col=None)
             if "sensor_positions" not in list(v["table"]):
-                sensor_positions_file = (importlib_resources.files(__resources__)/"sensor_positions_variables.csv")
+                sensor_positions_file = (importlib.resources.files(__resources__)/"sensor_positions_variables.csv")
                 sensor_positions_variables = pd.read_csv(sensor_positions_file, index_col=None)
                 v = pd.concat([v, sensor_positions_variables], ignore_index=True)
 
@@ -727,7 +727,7 @@ def stack_data_files_parallel(folder,
 
         # append fields to variables file
         if f"variables_{dpnum}" in stacklist.keys():
-            added_fields_file = (importlib_resources.files(__resources__)/"added_fields.csv")
+            added_fields_file = (importlib.resources.files(__resources__)/"added_fields.csv")
             added_fields = pd.read_csv(added_fields_file, index_col=None)
             added_fields_all = added_fields[-2:]
             added_fields_all.insert(0, "table", j)
