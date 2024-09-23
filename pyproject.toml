@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonutilities"
-version = "0.0.13"
+version = "1.0.0"
 authors = [
     {name="Claire Lunch", email="clunch@battelleecology.org"},
     {name="Bridget Hass", email="bhass@battelleecology.org"},
-    {name="Zachary Nicherson", email="nickerson@battelleecology.org"}
+    {name="Zachary Nickerson", email="nickerson@battelleecology.org"}
 ]
 description="A package for accessing and wrangling data generated and published by the National Ecological Observatory Network."
 readme = "README.md"
