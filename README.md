@@ -1,5 +1,5 @@
 neonutilities
-================
+===============
 
 [https://github.com/NEONScience/NEON-utilities-python](https://github.com/NEONScience/NEON-utilities-python)
 
