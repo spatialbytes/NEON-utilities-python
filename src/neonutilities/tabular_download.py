@@ -3,7 +3,7 @@
 
 import re
 import os
-import importlib.resources
+import importlib_resources
 import pandas as pd
 import logging
 from .helper_mods.api_helpers import get_api
@@ -233,7 +233,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
         site = [site]
 
     # redirect for aqu met products and bundles
-    shared_aquatic_file = (importlib.resources.files(__resources__)/"shared_aquatic.csv")
+    shared_aquatic_file = (importlib_resources.files(__resources__)/"shared_aquatic.csv")
     shared_aquatic_df = pd.read_csv(shared_aquatic_file, index_col="site")
 
     if site != ["all"]:
@@ -258,7 +258,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
         siter = site
 
     # redirect for chemistry bundles
-    chem_bundles_file = (importlib.resources.files(__resources__)/"chem_bundles.csv")
+    chem_bundles_file = (importlib_resources.files(__resources__)/"chem_bundles.csv")
     chem_bundles_df = pd.read_csv(chem_bundles_file)
     if dpid in list(chem_bundles_df["product"]):
         newDPID = list(chem_bundles_df["homeProduct"][chem_bundles_df["product"]==dpid])
@@ -268,7 +268,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
             raise ValueError(f"{''.join(dpid)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
 
     # redirect for veg structure and sediment data product bundles
-    other_bundles_file = (importlib.resources.files(__resources__)/"other_bundles.csv")
+    other_bundles_file = (importlib_resources.files(__resources__)/"other_bundles.csv")
     other_bundles_df = pd.read_csv(other_bundles_file)
     if dpid in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
         newDPID = list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpid])
