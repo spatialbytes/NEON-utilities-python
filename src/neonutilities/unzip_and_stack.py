@@ -146,12 +146,6 @@ def get_recent_publication(filepaths):
     --------
     The filepath of the file with the most recent publication date
 
-    Example
-    --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
-
     Created on Wed Apr 17 2024
 
     @author: Zachary Nickerson
@@ -182,12 +176,6 @@ def get_variables(v):
     Return
     --------
     A pyarrow schema for data types based on the variables file
-
-    Example
-    --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
 
     Created on Wed Apr 17 2024
 
@@ -439,12 +427,6 @@ def format_readme(readmetab,
     --------
     A modified readme file formatted to remove site-specific information and include standard information about the neonutilities download
 
-    Example
-    --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
-
     Created on Fri Jul 12 2024
 
     @author: Zachary Nickerson
@@ -496,12 +478,6 @@ def stack_data_files_parallel(folder,
     Return
     --------
     One file for each table type is created and written.
-
-    Example
-    --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
 
     Created on Tue Apr 2 2024
 
@@ -866,9 +842,8 @@ def stack_by_table(filepath,
 
     Example
     --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
+    # To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
+    >>> pardat = stack_by_table("/filepath/NEON_par.zip")
 
     Created on Tue Mar 5 2024
 
@@ -1058,9 +1033,9 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
     --------
     Download water quality data from COMO (Como Creek) in 2018
 
-    >>> load_by_product(dpid="DP1.20288.001",site="COMO",
-                        startdate="2018-01", enddate="2018-12",
-                        token=None)
+    >>> wq = load_by_product(dpid="DP1.20288.001",site="COMO",
+                             startdate="2018-01", enddate="2018-12",
+                             token=None)
 
     Created on June 12 2024
 

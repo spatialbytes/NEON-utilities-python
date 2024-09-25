@@ -107,6 +107,13 @@ def get_issue_log(dpid, token=None):
         'parentIssueID', 'issueDate', 'resolvedDate', 'dateRangeStart',
         'dateRangeEnd', 'locationAffected', 'issue', 'resolution'; 
         all other data products have the same columns minus 'dpid'
+        
+    Example
+    -------
+    Get the issue log for Breeding landbird point counts (DP1.10003.001)
+
+    >>> birdiss = get_issue_log(dpid="DP1.10003.001")
+
     """
     # raise value error and print message if dpid isn't formatted as expected
     validate_dpid(dpid)

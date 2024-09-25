@@ -32,7 +32,11 @@ nu.by_tile_aop(dpid="DP3.30015.001",
 
 ```
 
+To install the development version (not recommended):
 
+```
+$ pip install git+https://github.com/NEONScience/NEON-utilities-python.git@main
+```
 
 Credits & Acknowledgements
 ---

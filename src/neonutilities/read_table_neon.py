@@ -26,9 +26,8 @@ def read_table_neon(data_file,
 
     Example
     --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
+    >>> dattab = read_table_neon(data_file="path to data table file",
+                                 var_file="path to variables file matching data table")
 
     Created on Thu Feb 1 2024
 
@@ -93,7 +92,7 @@ def date_convert(dates):
 
     Example
     --------
-    d = date_convert("2023-08-01")
+    >>> d = date_convert("2023-08-01")
 
     Created on 2 May 2024
 
