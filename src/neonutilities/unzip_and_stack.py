@@ -283,12 +283,12 @@ def find_table_types(datatables):
     tt = {}
     for k in range(0, len(tn)):
         tnk = tn[k]
-        tnkr = re.compile(tnk + "|" + tnk + "_pub")
+        tnkr = re.compile("^" + tnk + "$|^" + tnk + "_pub$")
         tnknames = [trnn for trnn in splitnames for tr in trnn if tnkr.search(tr)]
         ttklist = list(map(table_type_formats, tnknames))
         ttk = list(set(ttklist))
         if len(ttk) > 1:
-            raise ValueError("In files to be stacked, table {tnk} has been published under conflicting schedules. To avoid this problem, either work only with released data, or stack released and provisional data separately.")
+            raise ValueError(f"In files to be stacked, table {tnk} has been published under conflicting schedules. To avoid this problem, either work only with released data, or stack released and provisional data separately.")
             return
         else:
             tt[tnk] = ttk[0]
