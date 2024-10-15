@@ -724,22 +724,40 @@ def stack_data_files_parallel(folder,
             if j != "sensor_positions":
 
                 locr = re.compile("[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.]")
-                indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
-                hor = [indx[5:8] for indx in indxs]
-                ver = [indx[9:12] for indx in indxs]
-                pdat.insert(2, "horizontalPosition", hor)
-                pdat.insert(3, "verticalPosition", ver)
+                if locr is None:
+                    pass
+                else:
+                    indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
+                    hor = [indx[5:8] for indx in indxs]
+                    ver = [indx[9:12] for indx in indxs]
+                    pdat.insert(2, "horizontalPosition", hor)
+                    pdat.insert(3, "verticalPosition", ver)
 
-                # sort the table by site, then HOR/VER, then date, all ascending
-                pdat.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition', 'endDateTime'],
-                                 ascending=[True, True, True, True],
-                                 inplace=True, ignore_index=True)
-
-                # append fields to variables file
-                if f"variables_{dpnum}" in stacklist.keys():
-                    added_fields_IS = added_fields[0:4]
-                    added_fields_IS.insert(0,"table",j)
-                    vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
+                    # sort the table by site, then HOR/VER, then date, all ascending
+                    pcols = pdat.columns.to_list()
+                    datevar = None
+                    if 'endDateTime' in pcols:
+                        datevar = 'endDateTime'
+                    else:
+                        if 'date' in pcols:
+                            datevar = 'date'
+                    try:
+                        if datevar is None:
+                            pdat.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition'],
+                                             ascending=[True, True, True, True],
+                                             inplace=True, ignore_index=True)
+                        else:
+                            pdat.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition', datevar],
+                                             ascending=[True, True, True, True],
+                                             inplace=True, ignore_index=True)
+                    except Exception:
+                        pass
+    
+                    # append fields to variables file
+                    if f"variables_{dpnum}" in stacklist.keys():
+                        added_fields_IS = added_fields[0:4]
+                        added_fields_IS.insert(0,"table",j)
+                        vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
 
         else:
             # for OS tables, sort by site and date
