@@ -412,6 +412,78 @@ def align_sp_cols(sptab):
     return sptab
 
 
+def sort_dat(pdata):
+    """
+
+    Small helper function to sort data rows by location and date
+
+    Parameters
+    --------
+    pdata: A pandas table of data records
+
+    Return
+    --------
+    A pandas table of data records sorted by location and date
+
+    Created on 17 Oct 2024
+
+    @author: Claire Lunch
+    """
+
+    # sort the table by site, then HOR/VER, then date, all ascending
+    pcols = pdata.columns.to_list()
+    datevar = None
+    if 'collectDate' in pcols:
+        datevar = 'collectDate'
+    else:
+        if 'endDate' in pcols:
+            datevar = 'endDate'
+        else:
+            if 'startDate' in pcols:
+                datevar = 'startDate'
+            else:
+                if 'date' in pcols:
+                    datevar = 'date'
+                else:
+                    if 'endDateTime' in pcols:
+                        datevar = 'endDateTime'
+                    else:
+                        if 'startDateTime' in pcols:
+                            datevar = 'startDateTime'
+    if 'horizontalPosition' not in pcols:
+        try:
+            if datevar is None:
+                pdata.sort_values(by=['siteID'],
+                                  ascending=[True],
+                                  inplace=True, ignore_index=True)
+            else:
+                pdata.sort_values(by=['siteID', datevar],
+                                  ascending=[True,True],
+                                  inplace=True, ignore_index=True)
+        except Exception:
+            try:
+                pdata.sort_values(by=[datevar],
+                                  ascending=[True],
+                                  inplace=True, ignore_index=True)
+            except Exception:
+                pass
+
+    else:
+        try:
+            if datevar is None:
+                pdata.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition'],
+                                 ascending=[True, True, True],
+                                 inplace=True, ignore_index=True)
+            else:
+                pdata.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition', datevar],
+                                 ascending=[True, True, True, True],
+                                 inplace=True, ignore_index=True)
+        except Exception:
+            pass
+        
+    return(pdata)
+
+
 def format_readme(readmetab,
                   tables):
     """
@@ -614,13 +686,23 @@ def stack_data_files_parallel(folder,
         readmefiles = glob.glob(os.path.join(folder, '**', '*.txt'), recursive=True)
     if any(re.search("readme.20", path) for path in readmefiles):
         readmepath = get_recent_publication([path for path in readmefiles if "readme.20" in path])[0]
+        rd = None
         if cloud_mode:
-            rd = readme_url(readmepath)
+            try:
+                rd = readme_url(readmepath)
+            except Exception:
+                pass
         else:
-            rd = pd.read_table(readmepath, delimiter='\t', header=None)
-        rd = format_readme(rd, tables)      
-        # save the readme
-        stacklist[f"readme_{dpnum}"] = rd
+            try:
+                rd = pd.read_table(readmepath, delimiter='\t', header=None)
+            except Exception:
+                pass
+        if rd is None:
+            pass
+        else:
+            rd = format_readme(rd, tables)      
+            # save the readme
+            stacklist[f"readme_{dpnum}"] = rd
 
     # stack tables according to types
     if progress:
@@ -724,71 +806,28 @@ def stack_data_files_parallel(folder,
             if j != "sensor_positions":
 
                 locr = re.compile("[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.][0-9]{3}[.]")
-                if locr is None:
-                    pass
+                indtemp = [locr.search(l) for l in pdat["__filename"]]
+                if None in indtemp:
+                    pdat = sort_dat(pdat)
                 else:
-                    indxs = [locr.search(l).group(0) for l in pdat["__filename"]]
+                    indxs = [lt.group(0) for lt in indtemp]
                     hor = [indx[5:8] for indx in indxs]
                     ver = [indx[9:12] for indx in indxs]
                     pdat.insert(2, "horizontalPosition", hor)
                     pdat.insert(3, "verticalPosition", ver)
-
-                    # sort the table by site, then HOR/VER, then date, all ascending
-                    pcols = pdat.columns.to_list()
-                    datevar = None
-                    if 'endDateTime' in pcols:
-                        datevar = 'endDateTime'
-                    else:
-                        if 'date' in pcols:
-                            datevar = 'date'
-                    try:
-                        if datevar is None:
-                            pdat.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition'],
-                                             ascending=[True, True, True, True],
-                                             inplace=True, ignore_index=True)
-                        else:
-                            pdat.sort_values(by=['siteID', 'horizontalPosition', 'verticalPosition', datevar],
-                                             ascending=[True, True, True, True],
-                                             inplace=True, ignore_index=True)
-                    except Exception:
-                        pass
     
-                    # append fields to variables file
-                    if f"variables_{dpnum}" in stacklist.keys():
-                        added_fields_IS = added_fields[0:4]
-                        added_fields_IS.insert(0,"table",j)
-                        vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
+                    # sort table rows
+                    pdat = sort_dat(pdat)
+
+                # append fields to variables file
+                if f"variables_{dpnum}" in stacklist.keys():
+                    added_fields_IS = added_fields[0:4]
+                    added_fields_IS.insert(0,"table",j)
+                    vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
 
         else:
             # for OS tables, sort by site and date
-            pcols = pdat.columns.to_list()
-            datevar = None
-            if 'collectDate' in pcols:
-                datevar = 'collectDate'
-            else:
-                if 'endDate' in pcols:
-                    datevar = 'endDate'
-                else:
-                    if 'startDate' in pcols:
-                        datevar = 'startDate'
-                    else:
-                        if 'date' in pcols:
-                            datevar = 'date'
-                        else:
-                            if 'startDateTime' in pcols:
-                                datevar = 'startDateTime'
-            # sort the table by site then date, all ascending
-            try:
-                if datevar is None:
-                    pdat.sort_values(by=['siteID'],
-                                     ascending=[True],
-                                     inplace=True, ignore_index=True)
-                else:
-                    pdat.sort_values(by=['siteID', datevar],
-                                     ascending=[True,True],
-                                     inplace=True, ignore_index=True)
-            except Exception:
-                pass
+            pdat = sort_dat(pdat)
 
         # for SRF files, remove duplicates and modified records
         if j == "science_review_flags":
