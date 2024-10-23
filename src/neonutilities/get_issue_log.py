@@ -93,9 +93,7 @@ def get_eddy_issue_log(dpid, token=None):
         if change_log_df is not None and not change_log_df.empty:
             change_log_df['dpid'] = dpid
             eddy_issue_log_list.append(change_log_df)
-        else:
-            return None
-
+        
     eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
 
     return eddy_issue_log_df
