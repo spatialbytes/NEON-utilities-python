@@ -14,8 +14,11 @@ written by:
 """
 
 import re
+import logging
 import pandas as pd
 from .helper_mods.api_helpers import get_api
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 # %% functions to validate inputs (should pull these out into another helper module??)
 
@@ -54,6 +57,9 @@ def get_change_log_df(dpid, token=None):
     """
     req = get_api(
         api_url=f"http://data.neonscience.org/api/v0/products/{dpid}", token=token)
+    if req is None:
+        logging.info(f"Error in metadata retrieval for {dpid}. Issue log not found.")
+        return None
     all_product_info = pd.json_normalize(req.json()['data'])
     change_log_df = pd.DataFrame(all_product_info['changeLogs'][0])
 
@@ -87,6 +93,8 @@ def get_eddy_issue_log(dpid, token=None):
         if change_log_df is not None and not change_log_df.empty:
             change_log_df['dpid'] = dpid
             eddy_issue_log_list.append(change_log_df)
+        else:
+            return None
 
     eddy_issue_log_df = pd.concat(eddy_issue_log_list, ignore_index=True)
 

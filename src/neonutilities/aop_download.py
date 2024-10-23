@@ -160,7 +160,7 @@ def get_file_urls(urls, token=None):
     releases = []
     for url in urls:
         response = get_api(api_url=url, token=token)
-        if not response:
+        if response is None:
             logging.info(
                 "Data file retrieval failed. Check NEON data portal for outage alerts.")
 
@@ -476,7 +476,8 @@ def by_file_aop(dpid,
 
     # download issue log table
     ilog = get_issue_log(dpid=dpid, token=None)
-    ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
+    if ilog is not None:
+        ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
 
     # download citations
     if "PROVISIONAL" in releases:
@@ -853,7 +854,8 @@ def by_tile_aop(dpid,
 
     # download issue log table
     ilog = get_issue_log(dpid=dpid, token=None)
-    ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
+    if ilog is not None:
+        ilog.to_csv(f"{download_path}/issueLog_{dpid}.csv", index=False)
 
     # download citations
     if "PROVISIONAL" in releases:

@@ -116,9 +116,9 @@ def get_api(api_url,
 
             return response
 
-        except Exception:
-            raise ConnectionError(
-                "No response. NEON API may be unavailable, check NEON data portal for outage alerts. If the problem persists and can't be traced to an outage alert, check your computer for firewall or other security settings preventing Python from accessing the internet.")
+        except Exception as error:
+            print(error)
+            return None
 
 
 def get_api_headers(api_url,
@@ -257,6 +257,9 @@ def get_zip_urls(url_set,
 
         # get list of files from data endpoint
         m_res = get_api(api_url=url_set[i], token=token)
+        if m_res is None:
+            logging.info("Connection error for a subset of urls. Check outputs for missing data.")
+            return None
         m_di = m_res.json()
 
         # only keep queried release
@@ -374,6 +377,9 @@ def get_tab_urls(url_set,
 
         # get list of files from data endpoint
         m_res = get_api(api_url=url_set[i], token=token)
+        if m_res is None:
+            logging.info("Connection error for a subset of urls. Check outputs for missing data.")
+            return None
         m_di = m_res.json()
 
         # only keep queried release

@@ -98,6 +98,9 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
     # construct full query url and run query
     qurl = "http://data.neonscience.org/api/v0/data/query?productCode=" + dpid + sitesurl + dateurl + ipurl + "&package=" + package + relurl
     qreq = get_api(api_url=qurl, token=token)
+    if qreq is None:
+        logging.info("No API response for selected query. Check inputs.")
+        return None
     qdict = qreq.json()
 
     # get file list from dictionary response
@@ -291,6 +294,8 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
             if release != "current" and release != "PROVISIONAL":
                 rels = get_api(api_url="http://data.neonscience.org/api/v0/releases/", 
                                token=token)
+                if rels is None:
+                    raise ConnectionError("Data product was not found or API was unreachable.")
                 relj = rels.json()
                 reld = relj["data"]
                 rellist = []
