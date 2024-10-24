@@ -1,0 +1,35 @@
+table,fieldName,description,dataType,units,downloadPkg,pubFormat
+MCC,dnaSampleID,Identifier for DNA sample,string,NA,expanded,asIs
+MCC,dnaSampleCode,Barcode of a DNA sample,string,NA,expanded,asIs
+MCC,sequenceName,Name associated with the sequence,string,NA,expanded,asIs
+MCC,taxonSequence,Sequence associated with the taxon,string,NA,expanded,asIs
+MCC,completeTaxonomy,Full taxonomic hierarchy for identified organism,string,NA,expanded,asIs
+MCC,domain,The scientific name of the domain in which the taxon is classified,string,NA,expanded,asIs
+MCC,kingdom,The scientific name of the kingdom in which the taxon is classified,string,NA,expanded,asIs
+MCC,phylum,The scientific name of the phylum or division in which the taxon is classified,string,NA,expanded,asIs
+MCC,class,The scientific name of the class in which the taxon is classified,string,NA,expanded,asIs
+MCC,order,The scientific name of the order in which the taxon is classified,string,NA,expanded,asIs
+MCC,family,The scientific name of the family in which the taxon is classified,string,NA,expanded,asIs
+MCC,genus,The scientific name of the genus in which the organism is classified,string,NA,expanded,asIs
+MCC,specificEpithet,The specific epithet (second part of the species name) of the scientific name applied to the taxon,string,NA,expanded,asIs
+MCC,scientificName,"Scientific name, associated with the taxonID. This is the name of the lowest level taxonomic rank that can be determined",string,NA,expanded,asIs
+MCC,individualCount,Number of individuals of the same type,integer,NA,expanded,integer
+MCC,fileName,"Name of file, including file extension",string,NA,expanded,asIs
+REA,hoboSampleID,Unique identifier for the HOBO conductivity logger file,string,NA,expanded,asIs
+REA,hoboSampleCode,Barcode of the HOBO conductivity logger file,string,NA,expanded,asIs
+REA,measurementNumber,The number of the measurement in a time series,integer,NA,expanded,integer
+REA,dateTimeLogger,Local date and time returned by a field data logger,dateTime,NA,expanded,asIs
+REA,lowRangeHobo,Conductivity returned from a hobo logger for the low range,real,microsiemensPerCentimeter,expanded,asIs
+REA,fullRangeHobo,Conductivity from a hobo logger for the full range,real,microsiemensPerCentimeter,expanded,asIs
+REA,waterTemp,Temperature of water (C),real,celsius,expanded,asIs
+REA,fullRangeSpCondLinear,Specific conductance calculated using linear method and fullRangeHobo,real,microsiemensPerCentimeter,expanded,asIs
+REA,lowRangeSpCondLinear,Specific conductance calculated using linear method and lowRangeHobo,real,microsiemensPerCentimeter,expanded,asIs
+REA,fullRangeSpCondNonlinear,Specific conductance calculated using non-linear method and fullRangeHobo,real,microsiemensPerCentimeter,expanded,asIs
+REA,lowRangeSpCondNonlinear,Specific conductance calculated using non-linear method and lowRangeHobo,real,microsiemensPerCentimeter,expanded,asIs
+REA,fileName,"Name of file, including file extension",string,NA,expanded,asIs
+FSP,spectralSampleID,Identifier for a spectral sample,string,NA,expanded,asIs
+FSP,spectralSampleCode,Barcode of a spectral sample,string,NA,expanded,asIs
+FSP,wavelength,Wavelength of measurement,real,nanometer,expanded,asIs
+FSP,reflectanceCondition,Conditions under which reflectance measurement was made,string,NA,expanded,asIs
+FSP,reflectance,Reflectance of sample,real,proportion,expanded,asIs
+FSP,fileName,"Name of file, including file extension",string,NA,expanded,asIs

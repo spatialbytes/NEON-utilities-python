@@ -484,6 +484,77 @@ def sort_dat(pdata):
     return(pdata)
 
 
+def stack_frame_files(framefiles, dpid, 
+                      seqtyp=None, 
+                      cloud_mode=False):
+    """
+
+    Helper function to stack "data frame" files. These files do not go through the normal 
+    publication process, they are stored and published as a fixed unit. NEON uses this 
+    workflow for very large tabular files that can't be handled by the standard OS 
+    data pipeline.
+
+    Parameters
+    --------
+    framefiles: A list of filepaths pointing to the data frame files
+    dpid: The data product identifier of the product being stacked
+    seqtyp: For microbe community data, sequence type 16S or ITS
+    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? Defaults to False.
+
+    Return
+    --------
+    A stacked pandas table
+
+    Created on 24 Oct 2024
+
+    @author: Claire Lunch
+    """
+
+    # no variables files for these, use custom files in package resources
+    frame_file_file = (importlib_resources.files(__resources__)/"frame_file_variables.csv")
+    frame_file_variables = pd.read_csv(frame_file_file, index_col=None)
+    #v = pd.concat([v, frame_file_variables], ignore_index=True)
+    
+    fdict = {"DP1.30012.001":"FSP", "DP1.10081.001":"MCC", "DP1.20086.001":"MCC", 
+             "DP1.20141.001":"MCC", "DP1.20190.001":"REA", "DP1.20193.001":"REA"}
+    
+    fvars = pa.Table.from_pandas(frame_file_variables)
+    ftab = fvars.filter(pa.compute.field("table") == fdict[dpid])
+
+    fpkgvar = ftab.to_pandas()
+    fschema = get_variables(fpkgvar)
+    
+    if cloud_mode:
+        gcs = fs.GcsFileSystem(anonymous=True)
+        framebuckets = [re.sub(pattern="https://storage.neonscience.org/", 
+                               repl="", string=b) for b in framefiles]
+        fdat = dataset.dataset(source=framebuckets, filesystem=gcs, 
+                               format="csv", schema=fschema)
+    else:
+        fdat = dataset.dataset(source=framefiles, format="csv",
+                               schema=fschema)
+
+    fdattab = fdat.to_table()
+    fpdat = fdattab.to_pandas()
+    
+    nm = "per_sample"
+    
+    if dpid == "DP1.20190.001":
+        nm = "rea_conductivityRawData"
+    elif dpid == "DP1.20193.001":
+        nm = "sbd_conductivityRawData"
+    elif dpid == "DP1.30012.001":
+        nm = "fsp_rawSpectra"
+    elif dpid=="DP1.10081.001":
+        nm = f"mcc_soilPerSampleTaxonomy_{seqtyp}"
+    elif dpid=="DP1.20086.001":
+        nm = f"mcc_benthicPerSampleTaxonomy_{seqtyp}"
+    elif dpid=="DP1.20141.001":
+        nm = f"mcc_surfaceWaterPerSampleTaxonomy_{seqtyp}"
+    
+    return {"frmdat":fpdat, "frmnm":nm}
+
+
 def format_readme(readmetab,
                   tables):
     """
@@ -545,7 +616,7 @@ def stack_data_files_parallel(folder,
     package: basic or expanded data package
     dpid: Data product ID of product to stack.
     progress: Should a progress bar be displayed?
-    cloud_mode: cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
+    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
 
     Return
     --------
@@ -579,29 +650,29 @@ def stack_data_files_parallel(folder,
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
-
+        
         # stack frame files
         if progress:
             logging.info("Stacking per-sample files. These files may be very large; download data in smaller subsets if performance problems are encountered.\n")
 
-        # no variables files for these, have to let arrow infer. problem?
-        if cloud_mode:
-            framebuckets = [re.sub(pattern="https://storage.neonscience.org/", 
-                                   repl="", string=b) for b in framefiles]
-            fdat = dataset.dataset(source=framebuckets, filesystem=gcs, 
-                                   format="csv")
+        # subset microbe community data by taxonomic group
+        # and stack both sets
+        if dpid in ["DP1.10081.001", "DP1.20086.001","DP1.20141.001"]:
+            bacteriafiles = [b for b in framefiles if re.search("[_]16S[_]", b)]
+            fungifiles = [b for b in framefiles if re.search("[_]ITS[_]", b)]
+            
+            fpdat16 = stack_frame_files(bacteriafiles, dpid=dpid,
+                                        seqtyp="16S", cloud_mode=cloud_mode)
+            fpdatIT = stack_frame_files(fungifiles, dpid=dpid,
+                                        seqtyp="ITS", cloud_mode=cloud_mode)
+            
+            stacklist[fpdat16["frmnm"]] = fpdat16["frmdat"]
+            stacklist[fpdatIT["frmnm"]] = fpdatIT["frmdat"]
+            
         else:
-            fdat = dataset.dataset(source=framefiles, format="csv")
-
-        fdattab = fdat.to_table()
-        fpdat = fdattab.to_pandas()
-
-        if dpid == "DP1.20190.001":
-            stacklist["rea_conductivityRawData"] = fpdat
-        elif dpid == "DP1.20193.001":
-            stacklist["sbd_conductivityRawData"] = fpdat
-        else:
-            stacklist["per_sample"] = fpdat
+            fpdat = stack_frame_files(framefiles, dpid=dpid, seqtyp=None, 
+                                      cloud_mode=cloud_mode)
+            stacklist[fpdat["frmnm"]] = fpdat["frmdat"]
 
     # make a dictionary, where filenames are the keys to the filepath values
     filelist = dict(zip(filenames, filepaths))
