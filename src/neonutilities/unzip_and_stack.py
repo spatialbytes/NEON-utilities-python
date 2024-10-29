@@ -516,7 +516,8 @@ def stack_frame_files(framefiles, dpid,
     #v = pd.concat([v, frame_file_variables], ignore_index=True)
     
     fdict = {"DP1.30012.001":"FSP", "DP1.10081.001":"MCC", "DP1.20086.001":"MCC", 
-             "DP1.20141.001":"MCC", "DP1.20190.001":"REA", "DP1.20193.001":"REA"}
+             "DP1.20141.001":"MCC", "DP1.20190.001":"REA", "DP1.20193.001":"REA",
+             "DP1.10081.002":"MCT", "DP1.20086.002":"MCT", "DP1.20141.002":"MCT"}
     
     fvars = pa.Table.from_pandas(frame_file_variables)
     ftab = fvars.filter(pa.compute.field("table") == fdict[dpid])
@@ -551,7 +552,13 @@ def stack_frame_files(framefiles, dpid,
         nm = f"mcc_benthicPerSampleTaxonomy_{seqtyp}"
     elif dpid=="DP1.20141.001":
         nm = f"mcc_surfaceWaterPerSampleTaxonomy_{seqtyp}"
-    
+    elif dpid=="DP1.10081.002":
+        nm = f"mct_soilPerSampleTaxonomy_{seqtyp}"
+    elif dpid=="DP1.20086.002":
+        nm = f"mct_benthicPerSampleTaxonomy_{seqtyp}"
+    elif dpid=="DP1.20141.002":
+        nm = f"mct_surfaceWaterPerSampleTaxonomy_{seqtyp}"
+ 
     return {"frmdat":fpdat, "frmnm":nm}
 
 
@@ -646,7 +653,8 @@ def stack_data_files_parallel(folder,
     stacklist = {}
 
     # handle per-sample (data frame) tables separately
-    if dpid in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", "DP1.20193.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
+    if dpid in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", 
+                "DP1.20193.001", "DP1.10081.002", "DP1.20086.002","DP1.20141.002"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
@@ -657,17 +665,20 @@ def stack_data_files_parallel(folder,
 
         # subset microbe community data by taxonomic group
         # and stack both sets
-        if dpid in ["DP1.10081.001", "DP1.20086.001","DP1.20141.001"]:
+        if dpid in ["DP1.10081.001", "DP1.20086.001","DP1.20141.001",
+                    "DP1.10081.002", "DP1.20086.002","DP1.20141.002"]:
             bacteriafiles = [b for b in framefiles if re.search("[_]16S[_]", b)]
             fungifiles = [b for b in framefiles if re.search("[_]ITS[_]", b)]
             
-            fpdat16 = stack_frame_files(bacteriafiles, dpid=dpid,
-                                        seqtyp="16S", cloud_mode=cloud_mode)
-            fpdatIT = stack_frame_files(fungifiles, dpid=dpid,
-                                        seqtyp="ITS", cloud_mode=cloud_mode)
-            
-            stacklist[fpdat16["frmnm"]] = fpdat16["frmdat"]
-            stacklist[fpdatIT["frmnm"]] = fpdatIT["frmdat"]
+            if len(bacteriafiles)>0:
+                fpdat16 = stack_frame_files(bacteriafiles, dpid=dpid,
+                                            seqtyp="16S", cloud_mode=cloud_mode)
+                stacklist[fpdat16["frmnm"]] = fpdat16["frmdat"]
+                
+            if len(fungifiles)>0:
+                fpdatIT = stack_frame_files(fungifiles, dpid=dpid,
+                                            seqtyp="ITS", cloud_mode=cloud_mode)
+                stacklist[fpdatIT["frmnm"]] = fpdatIT["frmdat"]
             
         else:
             fpdat = stack_frame_files(framefiles, dpid=dpid, seqtyp=None, 
@@ -923,7 +934,10 @@ def stack_data_files_parallel(folder,
     # get issue log table
     # token omitted here since it's not otherwise used in stacking functions
     # consider a runLocal option, like in R stackEddy()
-    stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpid=dpid, token=None)
+    try:
+        stacklist[f"issueLog_{dpnum}"] = get_issue_log(dpid=dpid, token=None)
+    except Exception:
+        pass
 
     # get relevant citation(s)
     try:

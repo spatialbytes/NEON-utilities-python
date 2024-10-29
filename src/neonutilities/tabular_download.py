@@ -416,6 +416,8 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
 
         if not os.path.exists(outpath):
             os.makedirs(outpath)
+        else:
+            logging.info("Warning: Download folder already exists. Check carefully for duplicate files.")
 
         if timeindex != "all" or tabl != "all":
             for f in durls["flpth"]:
