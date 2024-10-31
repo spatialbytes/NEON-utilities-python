@@ -16,6 +16,7 @@ from .tabular_download import zips_by_product
 from .get_issue_log import get_issue_log
 from .citation import get_citation
 from .helper_mods.api_helpers import readme_url
+from .read_table_neon import get_variables, cast_table_neon
 from . import __resources__
 import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -164,51 +165,31 @@ def get_recent_publication(filepaths):
     return recent_files
 
 
-def get_variables(v):
+
+def string_schema(v):
     """
 
-    Get correct data types
+    Assign all variables to string. Fallback option if table read with true schema fails
 
     Parameters
     --------
-    v: A file that contains variable definition
+    v: A pandas table containing variable definitions
 
     Return
     --------
-    A pyarrow schema for data types based on the variables file
+    A pyarrow schema for all string data types based on the variable names
 
-    Created on Wed Apr 17 2024
+    Created on Oct 29 2024
 
-    @author: Zachary Nickerson
+    @author: Claire Lunch
     """
 
-    # function assumes variables are loaded as a pandas data frame.
-
-    # create pyarrow schema by translating NEON data types to pyarrow types
     for i in range(0, len(v)):
         nm = v.fieldName[i]
-        typ = pa.string()
-        if v.dataType[i] == "real":
-            typ = pa.float64()
-        if v.dataType[i] in ["integer", "unsigned integer", "signed integer"]:
-            typ = pa.int64()
-        if v.dataType[i] in ["string", "uri"]:
-            typ = pa.string()
-        if v.dataType[i] == "dateTime":
-            if v.pubFormat[i] in ["yyyy-MM-dd'T'HH:mm:ss'Z'(floor)", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'(round)"]:
-                typ = pa.timestamp("s", tz="UTC")
-            else:
-                if v.pubFormat[i] in ["yyyy-MM-dd(floor)", "yyyy-MM-dd"]:
-                    typ = pa.date64()
-                else:
-                    if v.pubFormat[i] in ["yyyy(floor)", "yyyy(round)"]:
-                        typ = pa.int64()
-                    else:
-                        typ = pa.string()
-        if i==0:
-            vschema = pa.schema([(nm, typ)])
+        if i == 0:
+            vschema = pa.schema([(nm, pa.string())])
         else:
-            nfield = pa.field(nm, typ)
+            nfield = pa.field(nm, pa.string())
             vschema = vschema.append(nfield)
 
     return vschema
@@ -838,15 +819,39 @@ def stack_data_files_parallel(folder,
                                    repl="", string=b) for b in tablepaths]
             dat = dataset.dataset(source=tablebuckets, filesystem=gcs, 
                                   format="csv", schema=tableschema)
-
         else:
             dat = dataset.dataset(source=tablepaths,
                                   format="csv", schema=tableschema)
 
         cols = tableschema.names
         cols.append("__filename")
-        dattab = dat.to_table(columns=cols)
+        
+        # attempt to stack to table. if it fails, stack as all string fields and warn
+        stringset = False
+        try:
+            dattab = dat.to_table(columns=cols)
+        except Exception:
+            try:
+                stringschema = string_schema(tablepkgvar)
+                if cloud_mode:
+                    dat = dataset.dataset(source=tablebuckets, filesystem=gcs, 
+                                          format="csv", schema=stringschema)
+                else:
+                    dat = dataset.dataset(source=tablepaths,
+                                          format="csv", schema=stringschema)
+                dattab = dat.to_table(columns=cols)
+                logging.info(f"Table {j} schema did not match data; all variable types set to string. Data type casting will be attempted after stacking step.")
+                stringset = True
+            except Exception:
+                logging.info(f"Failed to stack table {j}. Check input data and variables file.")
+                continue
+                
         pdat = dattab.to_pandas()
+        if stringset:
+            try:
+                pdat = cast_table_neon(pdat, tablepkgvar)
+            except Exception:
+                logging.info(f"Data type casting failed for table {j}. Variable types set to string.")
 
         # append publication date
         pubr = re.compile("20[0-9]{6}T[0-9]{6}Z")
