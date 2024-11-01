@@ -195,6 +195,35 @@ def string_schema(v):
     return vschema
 
 
+def unknown_string_schema(v):
+    """
+
+    Assign all variables to string. Fallback option if variables file can't be found
+
+    Parameters
+    --------
+    v: A list of column names
+
+    Return
+    --------
+    A pyarrow schema for all string data types based on the column names
+
+    Created on Oct 29 2024
+
+    @author: Claire Lunch
+    """
+
+    for i in range(0, len(v)):
+        nm = v[i]
+        if i == 0:
+            vschema = pa.schema([(nm, pa.string())])
+        else:
+            nfield = pa.field(nm, pa.string())
+            vschema = vschema.append(nfield)
+
+    return vschema
+
+
 def table_type_formats(flname):
     """
 
@@ -774,8 +803,9 @@ def stack_data_files_parallel(folder,
     for j in tqdm(tables, disable=not progress): 
 
         # create schema from variables file, for only this table and package
-        # should we include an option to read in without schema if variables file is missing?
         vtab = arrowvars.filter(pa.compute.field("table") == j)
+        if len(vtab)==0:
+            vtab = arrowvars.filter(pa.compute.field("table") == j + "_pub")
         if j == "sensor_positions":
             vtab = pa.Table.from_pandas(sensor_positions_internal_variables)
 
@@ -783,9 +813,14 @@ def stack_data_files_parallel(folder,
             vtabpkg = vtab.filter(pa.compute.field("downloadPkg") == "basic")
         else:
             vtabpkg = vtab
-
+            
         tablepkgvar = vtabpkg.to_pandas()
-        tableschema = get_variables(tablepkgvar)
+        if len(tablepkgvar)==0:
+            # set to string if variables file can't be found
+            tableschema = None
+            logging.info(f"Variables file not found for table {j}. Data types will be inferred if possible.")
+        else:
+            tableschema = get_variables(tablepkgvar)
 
         # subset the list of files to the relevant table
         tabler = re.compile("[.]" + j + "[.]|[.]" + j + "_pub[.]")
@@ -823,7 +858,10 @@ def stack_data_files_parallel(folder,
             dat = dataset.dataset(source=tablepaths,
                                   format="csv", schema=tableschema)
 
-        cols = tableschema.names
+        if tableschema is None:
+            cols = dat.head(num_rows=0).column_names
+        else:
+            cols = tableschema.names
         cols.append("__filename")
         
         # attempt to stack to table. if it fails, stack as all string fields and warn
@@ -832,7 +870,10 @@ def stack_data_files_parallel(folder,
             dattab = dat.to_table(columns=cols)
         except Exception:
             try:
-                stringschema = string_schema(tablepkgvar)
+                if tableschema is None:
+                    stringschema = unknown_string_schema(dat.head(num_rows=0).column_names)
+                else:
+                    stringschema = string_schema(tablepkgvar)
                 if cloud_mode:
                     dat = dataset.dataset(source=tablebuckets, filesystem=gcs, 
                                           format="csv", schema=stringschema)
@@ -876,7 +917,10 @@ def stack_data_files_parallel(folder,
             added_fields = pd.read_csv(added_fields_file, index_col=None)
             added_fields_all = added_fields[-2:]
             added_fields_all.insert(0, "table", j)
-            vlist[j] = pd.concat([vlist[j], added_fields_all], ignore_index=True)
+            try:
+                vlist[j] = pd.concat([vlist[j], added_fields_all], ignore_index=True)
+            except Exception:
+                pass
 
         # for IS products, append domainID, siteID, HOR, VER
         if "siteID" not in pdat.columns.to_list() and not table_types[j] == "lab":
@@ -910,7 +954,10 @@ def stack_data_files_parallel(folder,
                 if f"variables_{dpnum}" in stacklist.keys():
                     added_fields_IS = added_fields[0:4]
                     added_fields_IS.insert(0,"table",j)
-                    vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
+                    try:
+                        vlist[j] = pd.concat([added_fields_IS, vlist[j]], ignore_index=True)
+                    except Exception:
+                        pass
 
         else:
             # for OS tables, sort by site and date

@@ -273,9 +273,11 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
     # redirect for veg structure and sediment data product bundles
     other_bundles_file = (importlib_resources.files(__resources__)/"other_bundles.csv")
     other_bundles_df = pd.read_csv(other_bundles_file)
-    if dpid in list(other_bundles_df["product"]) and not release=="RELEASE-2021":
-        newDPID = list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpid])
-        raise ValueError(f"Except in RELEASE-2021, {''.join(dpid)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
+    if dpid in list(other_bundles_df["product"]):
+        bundle_release = other_bundles_df["lastRelease"][other_bundles_df["product"]==dpid].values[0]
+        if release>bundle_release:
+            newDPID = list(other_bundles_df["homeProduct"][other_bundles_df["product"]==dpid])
+            raise ValueError(f"In all releases after {bundle_release}, {''.join(dpid)} has been bundled with {''.join(newDPID)} and is not available independently. Please download {''.join(newDPID)}.")
 
     # end of error and exception handling, start the work
     # query the /products endpoint for the product requested
