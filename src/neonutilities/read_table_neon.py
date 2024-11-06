@@ -67,16 +67,16 @@ def read_table_neon(data_file,
     Read a NEON data table with correct data types for each variable.
 
     Parameters
-    --------
+    -------------------
     data_file: Filepath to a data table to load.
     var_file: Filepath to the variables file.
 
     Return
-    --------
+    -------------------
     A data frame of a NEON data table, with column classes assigned by data type.
 
     Example
-    --------
+    -------------------
     >>> dattab = read_table_neon(data_file="path to data table file",
                                  var_file="path to variables file matching data table")
 

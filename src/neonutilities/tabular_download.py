@@ -143,7 +143,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
     Download product-site-month data package files from NEON.
 
     Parameters
-    --------
+    ------------------
     dpid: Data product identifier in the form DP#.#####.###
     site: Either the string 'all', or one or more 4-letter NEON site codes. Defaults to 'all'.
     startdate: Earliest date of data to download, in the form YYYY-MM
@@ -160,11 +160,11 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
     savepath: File path of location to save data.
 
     Return
-    --------
+    -----------------
     A folder on the local drive containing the set of data package files meeting the input criteria.
 
     Example
-    --------
+    -----------------
     Download water quality data from COMO (Como Creek) in 2018
 
     >>> zips_by_product(dpid="DP1.20288.001",site="COMO",

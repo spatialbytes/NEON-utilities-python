@@ -1023,7 +1023,7 @@ def stack_by_table(filepath,
     Join data files in a zipped or unzipped NEON data package by table type.
 
     Parameters
-    --------
+    ------------------
     filepath: The location of the zip file or downloaded files.
     savepath: The location to save the output files to. (optional)
     save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
@@ -1031,11 +1031,11 @@ def stack_by_table(filepath,
     cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
 
     Return
-    --------
+    -------------------
     All files are unzipped and one file for each table type is created and written. If savepath="envt" is specified, output is a named list of tables; otherwise, function output is null and files are saved to the location specified.
 
     Example
-    --------
+    ------------------
     # To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
     >>> pardat = stack_by_table("/filepath/NEON_par.zip")
 
@@ -1204,7 +1204,7 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
     Download product-site-month data package files from NEON, stack, and load to the environment.
 
     Parameters
-    --------
+    ----------------
     dpid: Data product identifier in the form DP#.#####.###
     site: Either the string 'all', or one or more 4-letter NEON site codes
     startdate: Earliest date of data to download, in the form YYYY-MM
@@ -1220,11 +1220,11 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
     token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
 
     Return
-    --------
+    ---------------
     A folder on the local drive containing the set of data package files meeting the input criteria.
 
     Example
-    --------
+    ---------------
     Download water quality data from COMO (Como Creek) in 2018
 
     >>> wq = load_by_product(dpid="DP1.20288.001",site="COMO",

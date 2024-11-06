@@ -4,5 +4,11 @@ API
 .. autosummary::
    :toctree: generated
 
-   neonutilities.aop_download.by_file_aop
-   neonutilities.aop_download.by_tile_aop
+   neonutilities.by_file_aop
+   neonutilities.by_tile_aop
+   neonutilities.load_by_product
+   neonutilities.zips_by_product
+   neonutilities.stack_by_table
+   neonutilities.read_table_neon
+   neonutilities.get_citation
+   neonutilities.get_issue_log
