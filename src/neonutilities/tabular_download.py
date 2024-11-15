@@ -140,28 +140,66 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
                     include_provisional=False, cloud_mode=False,
                     progress=True, token=None, savepath=None):
     """
-    Download product-site-month data package files from NEON.
+    This function queries the NEON API for data by data product, site(s), and 
+    month(s), and downloads the corresponding data packages. Use this function 
+    to download NEON observational (OS) and instrument (IS) data; for remote 
+    sensing data, use the by_file_aop() and by_tile_aop() functions.
 
     Parameters
     ------------------
-    dpid: Data product identifier in the form DP#.#####.###
-    site: Either the string 'all', or one or more 4-letter NEON site codes. Defaults to 'all'.
-    startdate: Earliest date of data to download, in the form YYYY-MM
-    enddate: Latest date of data to download, in the form YYYY-MM
-    package: Download package to access, either basic or expanded
-    release: Data release to download. Defaults to the most recent release.
-    timeindex: Either the string 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
-    tabl: Either the string 'all', or the name of a single data table to download. Defaults to 'all'.
-    check_size: True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
-    include_provisional: Should Provisional data be returned in the download? Defaults to False.
-    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, zips_by_product() returns a list of files rather than downloading them. Defaults to False.
-    progress: Should the function display progress bars as it runs? Defaults to True
-    token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
-    savepath: File path of location to save data.
+    dpid: str
+        Data product identifier in the form DP#.#####.###
+        
+    site: str
+        Either the string 'all', or one or more 4-letter NEON site codes. Defaults to 'all'.
+        
+    startdate: str, optional
+        Earliest date of data to download, in the form YYYY-MM
+        
+    enddate: str, optional
+        Latest date of data to download, in the form YYYY-MM
+        
+    package: str, optional
+        Download package to access, either basic or expanded. Defaults to 'basic'.
+    
+    release: str, optional
+        Data release to download. Defaults to the most recent release.
+        
+    timeindex: str, optional
+        Either 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
+    
+    tabl: str, optional
+        Either the string 'all', or the name of a single data table to download. Only applicable to observational (OS) data. Defaults to 'all'.
+    
+    check_size: bool, optional
+        True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
+    
+    include_provisional: bool, optional
+        Should Provisional data be returned in the download? Defaults to False. See 
+        https://www.neonscience.org/data-samples/data-management/data-revisions-releases 
+        for details on the difference between provisional and released data.
+    
+    cloud_mode: bool, optional
+        Use cloud mode to transfer files cloud-to-cloud? If used, zips_by_product() returns a 
+        list of files rather than downloading them. Defaults to False; in general this 
+        option should be used via load_by_product(), in which zips_by_product() is a 
+        helper function.
+    
+    progress: bool, optional
+        Should the function display progress bars as it runs? Defaults to True.
+    
+    token: str, optional
+        User-specific API token from data.neonscience.org user account. See 
+        https://data.neonscience.org/data-api/rate-limiting/ for details about 
+        API rate limits and user tokens. If omitted, download uses the public rate limit.
+    
+    savepath: str, optional
+        File path of location to save data.
 
     Return
     -----------------
-    A folder on the local drive containing the set of data package files meeting the input criteria.
+    A folder on the local drive containing the set of data package files meeting the input criteria or,
+    in cloud mode, a list of file paths meeting the input criteria.
 
     Example
     -----------------

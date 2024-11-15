@@ -303,7 +303,7 @@ def by_file_aop(dpid,
                 chunk_size=1024,
                 token=None):
     """
-    This function queries the API for AOP data by site, year, and product, and downloads all 
+    This function queries the NEON API for AOP data by site, year, and product, and downloads all 
     files found, preserving the original folder structure. It downloads files serially to 
     avoid API rate-limit overload, which may take a long time.
 
@@ -316,7 +316,7 @@ def by_file_aop(dpid,
         The four-letter code of a single NEON site, e.g. 'CLBJ'.
 
     year: str or int
-        The four-digit year to search for data.
+        The four-digit year of data collection.
 
     include_provisional: bool, optional
         Should provisional data be downloaded? Defaults to False. See 
@@ -335,28 +335,23 @@ def by_file_aop(dpid,
         Size in bytes of chunk for chunked download. Defaults to 1024.
 
     token: str, optional
-        User-specific API token generated within neon.datascience user accounts.
+        User-specific API token from data.neonscience.org user account. See 
+        https://data.neonscience.org/data-api/rate-limiting/ for details about 
+        API rate limits and user tokens.
 
     Returns
     --------
-    None
-
-    Raises
-    --------
-    ValueError: If `dpid` is not formatted as expected.
-    ValueError: If field spectra data are attempted with the given `dpid`.
-    ValueError: If `site` is not a 4-letter character string.
-    ValueError: If `year` is not a valid year format, or is not > 2010
+    None; data are downloaded to the local directory specified.
 
     Examples
     --------
     >>> by_file_aop(dpid="DP3.30015.001", site="MCRA", year="2021", savepath="./test_download")
-    # This will download 2021 CHM data from MCRA to the './test_download' directory.
+    # This will download 2021 canopy height model data from McRae Creek to the './test_download' directory.
 
     Notes
     --------
     The function creates a folder in the 'savepath' directory, containing all AOP files meeting the query criteria. 
-    If 'savepath' is not provided, it uses the working directory.
+    If 'savepath' is not provided, data are downloaded to the working directory.
     """
 
     # raise value error and print message if dpid isn't formatted as expected
@@ -520,7 +515,7 @@ def by_tile_aop(dpid,
                 token=None,
                 verbose=False):
     """
-    This function queries the API for AOP data by site, year, product, and 
+    This function queries the NEON API for AOP data by site, year, product, and 
     UTM coordinates, and downloads all files found, preserving the original 
     folder structure. It downloads files serially to avoid API rate-limit 
     overload, which may take a long time.
@@ -534,7 +529,7 @@ def by_tile_aop(dpid,
         The four-letter code of a single NEON site, e.g. 'CLBJ'.
 
     year: str or int
-        The four-digit year to search for data.
+        The four-digit year of data collection.
 
     easting: int or list of int
         A number or list containing the easting UTM coordinate(s) of the locations to download.
@@ -543,8 +538,7 @@ def by_tile_aop(dpid,
         A number or list containing the northing UTM coordinate(s) of the locations to download.
 
     buffer: int, optional
-        Size, in meters, of the buffer to be included around the coordinates when determining which tiles to download. Defaults to 0. 
-        If easting and northing coordinates are the centroids of NEON TOS plots, use buffer = 20.
+        Size, in meters, of the buffer to be included around the coordinates when determining which tiles to download. Defaults to 0.
 
     include_provisional: bool, optional
         Should provisional data be downloaded? Defaults to False. See 
@@ -556,39 +550,31 @@ def by_tile_aop(dpid,
         If you have sufficient storage space on your local drive, when working 
         in batch mode, or other non-interactive workflow, use check_size=False.
 
-    savepath: str or pathlib.Path, optional
-        The file path to download to. Defaults to None, in which case the working directory is used. 
-        It can be a string or a pathlib.Path object.
+    savepath: str, optional
+        The file path to download to. Defaults to None, in which case the working directory is used.
 
-    chunk_size: integer, optional
+    chunk_size: int, optional
         Size in bytes of chunk for chunked download. Defaults to 1024.
 
     token: str, optional
-        User-specific API token generated within neon.datascience user accounts.
+        User-specific API token from data.neonscience.org user account. See 
+        https://data.neonscience.org/data-api/rate-limiting/ for details about 
+        API rate limits and user tokens.
 
     verbose: bool, optional
         If set to True, the function will print information about the downloaded tiles.
 
     Return
     --------
-    A folder in the working directory, containing all AOP files meeting query criteria.
-
-    Raises
-    --------
-    ValueError: If `dpid` is not formatted as expected.
-    ValueError: If field spectra data (DP1.30012.001) are provided as the dpid.
-    ValueError: If `site` is not a 4-letter character string.
-    ValueError: If `year` is not a valid year format, or is not > 2010.
-    ValueError: If `easting` is invalid.
-    ValueError: If `northing` is invalid.
-    ImportError: If `pyproj` is not installed.
+    None; data are downloaded to the local directory specified.
 
     Example
     --------
-    Download 2021 CHM data from MCRA at a single point:
-    by_tile_aop(dpid="DP3.30015.001", site="MCRA",easting = , northing = ,
-                year="2021", savepath="../../test_download")
-
+    >>> by_tile_aop(dpid="DP3.30015.001", site="MCRA", 
+                    easting=[566456, 566639], northing=[4900783, 4901094],
+                    year="2021", savepath="../../test_download")
+    # This will download any tiles overlapping the specified UTM coordinates for 
+    # 2021 canopy height model data from McRae Creek to the './test_download' directory.
 
     """
 

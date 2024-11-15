@@ -12,8 +12,11 @@ def get_citation(dpid, release):
 
     Parameters
     ----------
-    dpid : The data product ID of the data to be cited
-    release : The data release to be cited. Can be provisional.
+    dpid: str
+        The data product ID of the data to be cited
+        
+    release: str
+        The data release to be cited. Can be provisional.
 
     Return
     ------

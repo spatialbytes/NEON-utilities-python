@@ -47,3 +47,29 @@ FSP,wavelength,Wavelength of measurement,real,nanometer,expanded,asIs
 FSP,reflectanceCondition,Conditions under which reflectance measurement was made,string,NA,expanded,asIs
 FSP,reflectance,Reflectance of sample,real,proportion,expanded,asIs
 FSP,fileName,"Name of file, including file extension",string,NA,expanded,asIs
+BAT,siteID,NEON site code,string,NA,expanded,asIs
+BAT,startDate,The start date-time or interval during which an event occurred,dateTime,NA,expanded,asIs
+BAT,endDate,The end date-time or interval during which an event occurred,dateTime,NA,expanded,asIs
+BAT,eventID,"An identifier for the set of information associated with the event, which includes information about the place and time of the event",string,NA,expanded,asIs
+BAT,decimalLatitude,"The geographic latitude (in decimal degrees, WGS84) of the geographic center of the reference area",real,decimalDegree,expanded,asIs
+BAT,decimalLongitude,"The geographic longitude (in decimal degrees, WGS84) of the geographic center of the reference area",real,decimalDegree,expanded,asIs
+BAT,gpsCoordinateQuality,GPS quality of ping nearest to interval midpoint with valid GPS fix,string,NA,expanded,asIs
+BAT,elevation,Elevation (in meters) above sea level,real,meter,expanded,asIs
+BAT,gpsElevationQuality,Elevation quality of ping nearest to interval midpoint with valid GPS fix,string,NA,expanded,asIs
+BAT,dataFileName,"Name of file or folder containing data, including file extension",string,NA,expanded,asIs
+BAT,transducerName,Name of the transducer used in the survey,string,NA,expanded,asIs
+BAT,transducerNumber,Number of transducer in pinging sequence order,integer,NA,expanded,asIs
+BAT,sonarReportNumber,Unique number identifying the grouping of pings per data file,integer,NA,expanded,asIs
+BAT,firstPingNumber,Ping number of first ping in track,integer,NA,expanded,asIs
+BAT,lastPingNumber,Ping number of last ping in track,integer,NA,expanded,asIs
+BAT,bottomProcessingStatus,Explains if the bottom depth value was manually edited during processing,string,NA,expanded,asIs
+BAT,waterBodyBottomDepth,Average depth below the water surface at the bottom of the water body measured by sonar,real,meter,expanded,asIs
+BAT,plantProcessingStatus,Explains if the plant height value was manually edited during processing,string,NA,expanded,asIs
+BAT,submergedPlantHeight,Average height of submerged vegetation from the water body bottom measured by sonar,real,meter,expanded,asIs
+BAT,relativePlantCoverage,Relative coverage of submerged vegetation between the report number's pings,real,percent,expanded,asIs
+BAT,habitatProcessingStatus,Input parameter quality for the bottom type analysis: invalid often means a very soft bottom substrate,string,NA,expanded,asIs
+BAT,assignedBottomType,The assigned bottom type value determined by the maximum interpolated membership value,integer,NA,expanded,asIs
+BAT,bottomType1Membership,Interpolated membership value for the first bottom type cluster,real,NA,expanded,asIs
+BAT,bottomType2Membership,Interpolated membership value for the second bottom type cluster if applicable,real,NA,expanded,asIs
+BAT,bottomType3Membership,Interpolated membership value for the third bottom type cluster if applicable,real,NA,expanded,asIs
+BAT,bottomType4Membership,Interpolated membership value for the fourth bottom type cluster if applicable,real,NA,expanded,asIs

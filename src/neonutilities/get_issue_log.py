@@ -104,11 +104,16 @@ def get_issue_log(dpid, token=None):
     Retrieves the issue log for any NEON data products. Bundled eddy covariance data products have an additional column of the sub-data product id.
 
     Args:
-        dpid (str): The NEON data product ID.
-        token (str, optional): The NEON API token. Defaults to None.
+        dpid: str
+            The NEON data product ID.
+            
+        token: str
+            User-specific API token from data.neonscience.org user account. See 
+            https://data.neonscience.org/data-api/rate-limiting/ for details about 
+            API rate limits and user tokens. If omitted, download uses the public rate limit.
 
     Returns:
-        issue_log_df: A DataFrame containing the changeLogs for the provided dpid.
+        issue_log_df: A pandas DataFrame containing the changeLogs for the provided dpid.
         columns of the bundled eddy data frame are: 'dpid', 'id', 
         'parentIssueID', 'issueDate', 'resolvedDate', 'dateRangeStart',
         'dateRangeEnd', 'locationAffected', 'issue', 'resolution'; 

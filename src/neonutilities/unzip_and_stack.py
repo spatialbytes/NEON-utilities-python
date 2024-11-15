@@ -527,7 +527,8 @@ def stack_frame_files(framefiles, dpid,
     
     fdict = {"DP1.30012.001":"FSP", "DP1.10081.001":"MCC", "DP1.20086.001":"MCC", 
              "DP1.20141.001":"MCC", "DP1.20190.001":"REA", "DP1.20193.001":"REA",
-             "DP1.10081.002":"MCT", "DP1.20086.002":"MCT", "DP1.20141.002":"MCT"}
+             "DP1.10081.002":"MCT", "DP1.20086.002":"MCT", "DP1.20141.002":"MCT",
+             "DP4.00132.001":"BAT"}
     
     fvars = pa.Table.from_pandas(frame_file_variables)
     ftab = fvars.filter(pa.compute.field("table") == fdict[dpid])
@@ -556,6 +557,8 @@ def stack_frame_files(framefiles, dpid,
         nm = "sbd_conductivityRawData"
     elif dpid == "DP1.30012.001":
         nm = "fsp_rawSpectra"
+    elif dpid == "DP4.00132.001":
+        nm = "bat_processedSonarFile"
     elif dpid=="DP1.10081.001":
         nm = f"mcc_soilPerSampleTaxonomy_{seqtyp}"
     elif dpid=="DP1.20086.001":
@@ -664,7 +667,8 @@ def stack_data_files_parallel(folder,
 
     # handle per-sample (data frame) tables separately
     if dpid in ["DP1.30012.001", "DP1.10081.001", "DP1.20086.001","DP1.20141.001", "DP1.20190.001", 
-                "DP1.20193.001", "DP1.10081.002", "DP1.20086.002","DP1.20141.002"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
+                "DP1.20193.001", "DP1.10081.002", "DP1.20086.002","DP1.20141.002", 
+                "DP4.00132.001"] and len([f for f in filenames if not f.startswith("NEON.")]) > 0:
         framefiles = [f for f in filepaths if not os.path.basename(f).startswith("NEON.")]
         filepaths = [f for f in filepaths if os.path.basename(f).startswith("NEON.")]
         filenames = [f for f in filenames if os.path.basename(f).startswith("NEON.")]
@@ -1020,23 +1024,40 @@ def stack_by_table(filepath,
                    ):
     """
 
-    Join data files in a zipped or unzipped NEON data package by table type.
+    Join data files in a zipped or unzipped NEON data package by table type. 
+    This function can be used on a zip file downloaded from the NEON data portal or 
+    on a set of files downloaded by zips_by_product().
 
     Parameters
     ------------------
-    filepath: The location of the zip file or downloaded files.
-    savepath: The location to save the output files to. (optional)
-    save_unzipped_files: Should the unzipped monthly data folders be retained? (true/false)
-    progress: Should a progress bar be displayed?
-    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() expects a list of file urls as input. Defaults to False.
+    filepath: str
+        The location of the zip file or downloaded files.
+        
+    savepath: str, optional
+        The location to save the output files to. If omitted, output files will be 
+        saved in the same location as the input file.
+    
+    save_unzipped_files: bool, optional
+        Should the unzipped monthly data folders be retained? Defaults to False.
+        
+    progress: bool, optional
+        Should the function display progress bars as it runs? Defaults to True.
+        
+    cloud_mode: bool, optional
+        Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() 
+        expects a list of file urls as input. Defaults to False; in general this 
+        option should be used via load_by_product(), in which stack_by_table() is a 
+        helper function.
 
     Return
     -------------------
-    All files are unzipped and one file for each table type is created and written. If savepath="envt" is specified, output is a named list of tables; otherwise, function output is null and files are saved to the location specified.
+    All files are unzipped and one file for each table type is created and written. 
+    If savepath="envt" is specified, output is a named list of tables; otherwise, 
+    function output is null and files are saved to the location specified.
 
     Example
     ------------------
-    # To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
+    To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
     >>> pardat = stack_by_table("/filepath/NEON_par.zip")
 
     Created on Tue Mar 5 2024
@@ -1201,33 +1222,62 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
                     include_provisional=False, cloud_mode=False,
                     progress=True, token=None):
     """
-    Download product-site-month data package files from NEON, stack, and load to the environment.
+    This function downloads product-site-month data package files from NEON, unzips 
+    and stacks the data files, and loads to the environment.
 
     Parameters
     ----------------
-    dpid: Data product identifier in the form DP#.#####.###
-    site: Either the string 'all', or one or more 4-letter NEON site codes
-    startdate: Earliest date of data to download, in the form YYYY-MM
-    enddate: Latest date of data to download, in the form YYYY-MM
-    package: Download package to access, either basic or expanded
-    release: Data release to download. Defaults to the most recent release.
-    timeindex: Either the string 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
-    tabl: Either the string 'all', or the name of a single data table to download. Defaults to 'all'.
-    check_size: True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
-    include_provisional: Should Provisional data be returned in the download? Defaults to False.
-    cloud_mode: Use cloud mode to transfer files cloud-to-cloud? Should only be used if the destination location is in the cloud. Defaults to False.
-    progress: Should the function display progress bars as it runs? Defaults to True
-    token: User specific API token (generated within neon.datascience user accounts). If omitted, download uses the public rate limit.
+    dpid: str
+        Data product identifier in the form DP#.#####.###
+        
+    site: str
+        Either the string 'all', or one or more 4-letter NEON site codes. Defaults to 'all'.
+        
+    startdate: str, optional
+        Earliest date of data to download, in the form YYYY-MM
+        
+    enddate: str, optional
+        Latest date of data to download, in the form YYYY-MM
+    
+    package: str, optional
+        Download package to access, either basic or expanded. Defaults to 'basic'.
+    
+    release: str, optional
+        Data release to download. Defaults to the most recent release.
+        
+    timeindex: str, optional
+        Either 'all', or the time index of data to download, in minutes. Only applicable to sensor (IS) data. Defaults to 'all'.
+        
+    tabl: str, optional
+        Either 'all', or the name of a single data table to download. Only applicable to observational (OS) data. Defaults to 'all'.
+        
+    check_size: bool, optional
+        True or False, should the user approve the total file size before downloading? Defaults to True. When working in batch mode, or other non-interactive workflow, use check_size=False.
+        
+    include_provisional: bool, optional
+        Should Provisional data be returned in the download? Defaults to False. See 
+        https://www.neonscience.org/data-samples/data-management/data-revisions-releases 
+        for details on the difference between provisional and released data.
+        
+    cloud_mode: bool, optional
+        Use cloud mode to transfer files cloud-to-cloud? Should only be used if the destination location is in the cloud. Defaults to False.
+        
+    progress: bool, optional
+        Should the function display progress bars as it runs? Defaults to True.
+        
+    token: User-specific API token from data.neonscience.org user account. See 
+        https://data.neonscience.org/data-api/rate-limiting/ for details about 
+        API rate limits and user tokens. If omitted, download uses the public rate limit.
 
     Return
     ---------------
-    A folder on the local drive containing the set of data package files meeting the input criteria.
+    A dictionary of data and metadata tables, as pandas tables.
 
     Example
     ---------------
     Download water quality data from COMO (Como Creek) in 2018
 
-    >>> wq = load_by_product(dpid="DP1.20288.001",site="COMO",
+    >>> wq = load_by_product(dpid="DP1.20288.001", site="COMO",
                              startdate="2018-01", enddate="2018-12",
                              token=None)
 

@@ -68,8 +68,11 @@ def read_table_neon(data_file,
 
     Parameters
     -------------------
-    data_file: Filepath to a data table to load.
-    var_file: Filepath to the variables file.
+    data_file: str
+        Filepath to a data table to load.
+        
+    var_file: str
+        Filepath to a variables file matching the data table.
 
     Return
     -------------------
