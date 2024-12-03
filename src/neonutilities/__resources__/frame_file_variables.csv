@@ -48,9 +48,9 @@ FSP,reflectanceCondition,Conditions under which reflectance measurement was made
 FSP,reflectance,Reflectance of sample,real,proportion,expanded,asIs
 FSP,fileName,"Name of file, including file extension",string,NA,expanded,asIs
 BAT,siteID,NEON site code,string,NA,expanded,asIs
-BAT,startDate,The start date-time or interval during which an event occurred,dateTime,NA,expanded,asIs
-BAT,endDate,The end date-time or interval during which an event occurred,dateTime,NA,expanded,asIs
+BAT,surveyEndDate,The date-time indicating the end of all surveying activities,dateTime,NA,expanded,asIs
 BAT,eventID,"An identifier for the set of information associated with the event, which includes information about the place and time of the event",string,NA,expanded,asIs
+BAT,collectDateTime,Date and time of the collection event,dateTime,NA,expanded,asIs
 BAT,decimalLatitude,"The geographic latitude (in decimal degrees, WGS84) of the geographic center of the reference area",real,decimalDegree,expanded,asIs
 BAT,decimalLongitude,"The geographic longitude (in decimal degrees, WGS84) of the geographic center of the reference area",real,decimalDegree,expanded,asIs
 BAT,gpsCoordinateQuality,GPS quality of ping nearest to interval midpoint with valid GPS fix,string,NA,expanded,asIs
