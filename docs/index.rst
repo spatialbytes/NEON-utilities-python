@@ -14,7 +14,10 @@ joining tabular data files across dates and sites.
 
 To explore NEON data available for download and read data product documentation, 
 use the `Explore Data Products <https://data.neonscience.org/data-products/explore>`_ 
-page on the NEON Data Portal.
+page on the NEON Data Portal. For information about other resources available for 
+working with NEON data, see the `Getting Started with NEON Data and Resources 
+<https://www.neonscience.org/resources/getting-started-neon-data-resources>`_ page 
+on the NEON website.
 
 .. toctree::
    :maxdepth: 2
