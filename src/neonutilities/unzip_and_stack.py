@@ -546,7 +546,19 @@ def stack_frame_files(framefiles, dpid,
         fdat = dataset.dataset(source=framefiles, format="csv",
                                schema=fschema)
 
-    fdattab = fdat.to_table()
+    try:
+        fdattab = fdat.to_table()
+    except Exception:
+        stringschema = unknown_string_schema(fdat.head(num_rows=0).column_names)
+        if cloud_mode:
+            fdat = dataset.dataset(source=framebuckets, filesystem=gcs, 
+                                   format="csv", schema=stringschema)
+        else:
+            fdat = dataset.dataset(source=framefiles,
+                                   format="csv", schema=stringschema)
+        fdattab = fdat.to_table()
+        logging.info("Large file schema did not match expectations; all variable types set to string.")
+        
     fpdat = fdattab.to_pandas()
     
     nm = "per_sample"
