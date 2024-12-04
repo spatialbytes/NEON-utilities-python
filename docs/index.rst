@@ -6,10 +6,15 @@
 neonutilities documentation
 ===========================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+The neonutilities Python package provides utilities for discovering, downloading, 
+and working with data files published by the `National Ecological Observatory 
+Network (NEON) <https://www.neonscience.org/>`_. neonutilities provides functions 
+for downloading all types of NEON data (tabular, hierarchical, image) and for 
+joining tabular data files across dates and sites.
 
+To explore NEON data available for download and read data product documentation, 
+use the `Explore Data Products <https://data.neonscience.org/data-products/explore>`_ 
+page on the NEON Data Portal.
 
 .. toctree::
    :maxdepth: 2
