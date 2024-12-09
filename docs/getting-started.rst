@@ -27,4 +27,4 @@ Once neonutilities is installed you can import it into python:
 
     >>> import neonutilities as nu
 
-For further instructions in using the package, see Tutorials.
+For further instructions in using the package, see `Tutorials <https://neon-utilities-python.readthedocs.io/en/latest/tutorials.html>`_.
