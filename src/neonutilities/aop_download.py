@@ -374,7 +374,7 @@ def by_file_aop(dpid,
 
     # query the products endpoint for the product requested
     response = get_api(
-        "http://data.neonscience.org/api/v0/products/" + dpid, token)
+        "https://data.neonscience.org/api/v0/products/" + dpid, token)
 
     # exit function if response is None (eg. if no internet connection)
     if response is None:
@@ -632,7 +632,7 @@ def by_tile_aop(dpid,
 
     # query the products endpoint for the product requested
     response = get_api(
-        "http://data.neonscience.org/api/v0/products/" + dpid, token)
+        "https://data.neonscience.org/api/v0/products/" + dpid, token)
 
     # exit function if response is None (eg. if no internet connection)
     if response is None:

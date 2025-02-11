@@ -96,7 +96,7 @@ def query_files(lst, dpid, site="all", startdate=None, enddate=None,
         relurl = "&release=" + release
 
     # construct full query url and run query
-    qurl = "http://data.neonscience.org/api/v0/data/query?productCode=" + dpid + sitesurl + dateurl + ipurl + "&package=" + package + relurl
+    qurl = "https://data.neonscience.org/api/v0/data/query?productCode=" + dpid + sitesurl + dateurl + ipurl + "&package=" + package + relurl
     qreq = get_api(api_url=qurl, token=token)
     if qreq is None:
         logging.info("No API response for selected query. Check inputs.")
@@ -320,10 +320,10 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
     # end of error and exception handling, start the work
     # query the /products endpoint for the product requested
     if release == "current" or release == "PROVISIONAL":
-        prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
+        prodreq = get_api(api_url="https://data.neonscience.org/api/v0/products/"
                           + dpid, token=token)
     else:
-        prodreq = get_api(api_url="http://data.neonscience.org/api/v0/products/"
+        prodreq = get_api(api_url="https://data.neonscience.org/api/v0/products/"
                           + dpid + "?release=" + release, token=token)
 
     if prodreq is None:
@@ -332,7 +332,7 @@ def zips_by_product(dpid, site="all", startdate=None, enddate=None,
             return
         else:
             if release != "current" and release != "PROVISIONAL":
-                rels = get_api(api_url="http://data.neonscience.org/api/v0/releases/", 
+                rels = get_api(api_url="https://data.neonscience.org/api/v0/releases/", 
                                token=token)
                 if rels is None:
                     raise ConnectionError("Data product was not found or API was unreachable.")

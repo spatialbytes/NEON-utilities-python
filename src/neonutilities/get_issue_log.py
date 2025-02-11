@@ -56,7 +56,7 @@ def get_change_log_df(dpid, token=None):
         'issue', 'resolution'
     """
     req = get_api(
-        api_url=f"http://data.neonscience.org/api/v0/products/{dpid}", token=token)
+        api_url=f"https://data.neonscience.org/api/v0/products/{dpid}", token=token)
     if req is None:
         logging.info(f"Error in metadata retrieval for {dpid}. Issue log not found.")
         return None
