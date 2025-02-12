@@ -153,7 +153,7 @@ class TestByFileAOP(unittest.TestCase):
         This has already run through the check that any data is available (eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
-            by_file_aop(dpid="DP3.30015.001", site="SCBI", year=2023)
+            by_file_aop(dpid="DP3.30015.001", site="WLOU", year=2024)
             self.assertIn(
                 'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
 
@@ -165,8 +165,8 @@ class TestByFileAOP(unittest.TestCase):
         This has already run through the check that any data is available (eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
-            by_file_aop(dpid="DP3.30015.001", site="SCBI",
-                        year=2023, include_provisional=True)
+            by_file_aop(dpid="DP3.30015.001", site="WLOU",
+                        year=2024, include_provisional=True)
             self.assertIn(
                 'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
@@ -290,7 +290,7 @@ class TestByTileAop(unittest.TestCase):
         This has already run through the check that any data is available (eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
-            by_tile_aop(dpid=self.dpid, site=self.site, year=2023,
+            by_tile_aop(dpid=self.dpid, site='WLOU', year=2024,
                         easting=self.easting, northing=self.northing)
             self.assertIn(
                 'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
