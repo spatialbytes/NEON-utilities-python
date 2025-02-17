@@ -10,10 +10,10 @@ Installation dependencies:
 
 Unit tests for by_file_aop and by_tile_aop.
 
-These mainly test the function's output messages for invalid inputs, 
-collocated sites, data not found, and provisional scenarios so far.
+These mainly test the functions' output messages for invalid inputs,
+collocated sites, data not found, and provisional availability scenarios
 
-More complete functional testing is included in the nu_python_testing repository.
+More complete integration tests are included in the nu_python_testing repository.
 https://github.com/NEONScience/nu-python-testing
 
 Notes:
@@ -26,24 +26,21 @@ Notes:
 """
 
 # import required packages
-
 import os
-from src.neonutilities.aop_download import by_file_aop, by_tile_aop
-
 import pytest
 import unittest
 from unittest.mock import patch
 from parameterized import parameterized
 
-# read in token from os.environ
+# import neon utilities functions that are being tested
+from src.neonutilities.aop_download import by_file_aop, by_tile_aop, list_available_dates
+
+# read in token from os.environ (requires the token to be set)
 token = os.environ.get("NEON_TOKEN")
 
-# Test invalid inputs and make sure informational messages display correctly ###
-
-# similar tests for by_file_aop and by_tile_aop, with some additional tests for by_tile_aop
-
-# TestByFileAOP
-# TestByTileAOP
+# Test invalid inputs and make sure informational messages display correctly
+# This contains similar tests for by_file_aop and by_tile_aop,
+# with some additional tests for extra functionality in by_tile_aop
 
 
 class TestByFileAOP(unittest.TestCase):
@@ -62,6 +59,24 @@ class TestByFileAOP(unittest.TestCase):
         with self.assertRaises(ValueError, msg=f'{invalid_dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#'):
             by_file_aop(dpid=invalid_dpid, site=self.site, year=self.year)
 
+    def test_invalid_aop_dpid_pattern(self):
+        """
+        Test that invalid AOP dpid pattern raises a ValueError and message displays correctly.
+        """
+        invalid_aop_dpid = "DP1.20001.001"
+        with self.assertRaises(ValueError, msg=f'{invalid_aop_dpid} is not a valid AOP data product ID. AOP products follow the format DP#.300##.00#'):
+            by_file_aop(dpid=invalid_aop_dpid, site=self.site, year=self.year)
+
+    def test_invalid_aop_dpid_suspended(self):
+        """
+        Test that entering a suspended AOP data product raises a ValueError and message displays correctly.
+        """
+        suspended_aop_dpid = "DP2.30016.001"
+        # ' Valid AOP DPIDs are '):
+        with self.assertRaises(ValueError, msg=f'{suspended_aop_dpid} has been suspended and is not currently available, see https://www.neonscience.org/data-products/{suspended_aop_dpid} for more details.'):
+            by_file_aop(dpid=suspended_aop_dpid,
+                        site=self.site, year=self.year)
+
     def test_check_field_spectra_dpid(self):
         """
         Test that providing field spectra dpid raises ValueError and message displays correctly.
@@ -76,7 +91,15 @@ class TestByFileAOP(unittest.TestCase):
         Test that invalid site format raises ValueError and message displays correctly.
         """
         invalid_site = 'McRae'
-        with self.assertRaises(ValueError, msg=f'{invalid_site} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.'):
+        with self.assertRaises(ValueError, msg=f'{invalid_site} is an invalid site format. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/explore-field-sites'):
+            by_file_aop(dpid=self.dpid, site=invalid_site, year=self.year)
+
+    def test_invalid_neon_site(self):
+        """
+        Test that an invalid NEON site code raises a ValueError and the message displays correctly.
+        """
+        invalid_site = "HOPD"
+        with self.assertRaises(ValueError, msg=f'{invalid_site} is not a valid NEON site code. A complete list of NEON site codes can be found here: https://www.neonscience.org/field-sites/explore-field-sites'):
             by_file_aop(dpid=self.dpid, site=invalid_site, year=self.year)
 
     @parameterized.expand([("21",), ("2021-05",), ])
@@ -122,7 +145,6 @@ class TestByFileAOP(unittest.TestCase):
             self.assertIn(
                 f'INFO:root:{site} is an aquatic site and is sometimes included in the flight box for {flightSite}. Aquatic sites are not always included in the flight coverage every year.\nDownloading data from {flightSite}. Check data to confirm coverage of {site}.', cm.output)
 
-    # @patch('builtins.input', return_value='n')
     def test_no_data_available_message(self):
         """
         Test that the by_file_aop() function returns the expected error log when no data is available for a selected site and year.
@@ -130,7 +152,7 @@ class TestByFileAOP(unittest.TestCase):
         with self.assertLogs(level='INFO') as cm:
             by_file_aop(dpid="DP3.30015.001", site=self.site, year=2020)
             self.assertIn(
-                'INFO:root:There are no data available at the selected site and year.', cm.output)
+                f'INFO:root:There are no {self.dpid} data available at the site {self.site} in 2020.\nTo display available dates for a given data product and site, use the function list_available_dates().', cm.output)
 
     @patch('builtins.input', return_value='n')
     def test_check_download_size_message(self, input_mock):
@@ -150,7 +172,7 @@ class TestByFileAOP(unittest.TestCase):
     def test_all_provisional_no_data_available_message(self):
         """
         Test that the by_file_aop() function returns the expected message when include_provisional is set to False (default) but no data are available.
-        This has already run through the check that any data is available (eg. there is data at that site for the year provided)
+        This has already run through the check that any data is available(eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
             by_file_aop(dpid="DP3.30015.001", site="WLOU", year=2024)
@@ -162,7 +184,7 @@ class TestByFileAOP(unittest.TestCase):
     def test_provisional_included_and_data_available_message(self, input_mock):
         """
         Test that the by_file_aop() function returns the expected message when include_provisional is set to False (default) but no data are available.
-        This has already run through the check that any data is available (eg. there is data at that site for the year provided)
+        This has already run through the check that any data is available(eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
             by_file_aop(dpid="DP3.30015.001", site="WLOU",
@@ -170,7 +192,7 @@ class TestByFileAOP(unittest.TestCase):
             self.assertIn(
                 'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
-    # other scenarios- check messages but don't donwload the data ?
+    # other scenarios- check messages but don't download the data ?
     # provisional not included, and data available
     # provisional included, and data available
 
@@ -191,6 +213,15 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid=invalid_dpid, site=self.site, year=self.year,
                         easting=self.easting, northing=self.northing)
 
+    def test_invalid_aop_l3_dpid(self):
+        """
+        Test that invalid AOP dpid raises a ValueError and message displays correctly.
+        """
+        invalid_aop_dpid = "DP1.30001.001"
+        with self.assertRaises(ValueError, msg=f'{invalid_aop_dpid} is not a valid Level 3 AOP data product ID. Level 3 AOP products follow the format DP3.300##.00#'):
+            by_tile_aop(dpid=invalid_aop_dpid, site=self.site, year=self.year,
+                        easting=self.easting, northing=self.northing)
+
     def test_check_field_spectra_dpid(self):
         field_spectra_dpid = 'DP1.30012.001'
         with self.assertRaises(ValueError, msg=f'{field_spectra_dpid} is the Field spectral data product, which is published as tabular data. Use zipsByProduct() or loadByProduct() to download these data.'):
@@ -199,7 +230,13 @@ class TestByTileAop(unittest.TestCase):
 
     def test_invalid_site_format(self):
         invalid_site = 'McRae'
-        with self.assertRaises(ValueError, msg=f'{invalid_site} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.'):
+        with self.assertRaises(ValueError, msg=f'{invalid_site} is an invalid site format. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/explore-field-sites'):
+            by_tile_aop(dpid=self.dpid, site=invalid_site, year=self.year,
+                        easting=self.easting, northing=self.northing)
+
+    def test_invalid_neon_site(self):
+        invalid_site = 'ABBA'
+        with self.assertRaises(ValueError, msg=f'{invalid_site} is not a valid NEON site code. A complete list of NEON site codes can be found here: https://www.neonscience.org/field-sites/explore-field-sites'):
             by_tile_aop(dpid=self.dpid, site=invalid_site, year=self.year,
                         easting=self.easting, northing=self.northing)
 
@@ -255,7 +292,8 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid="DP3.30015.001", site=self.site,
                         year=2020, easting=self.easting, northing=self.northing)
             self.assertIn(
-                'INFO:root:There are no data available at the selected site and year.', cm.output)
+                f'INFO:root:There are no DP3.30015.001 data available at the site {self.site} in 2020.\nTo display available dates for a given data product and site, use the function list_available_dates().', cm.output)
+            # 'INFO:root:There are no data available at the selected site and year.', cm.output)
 
     def test_no_data_files_found_message(self):
         """
@@ -265,9 +303,9 @@ class TestByTileAop(unittest.TestCase):
             by_tile_aop(dpid="DP3.30015.001", site=self.site,
                         year=2020, easting=564000, northing=4900000)
             self.assertIn(
-                'INFO:root:There are no data available at the selected site and year.', cm.output)
+                f'INFO:root:There are no DP3.30015.001 data available at the site {self.site} in 2020.\nTo display available dates for a given data product and site, use the function list_available_dates().', cm.output)
 
-    @patch('builtins.input', return_value='n')
+    @ patch('builtins.input', return_value='n')
     def test_check_download_size_message(self, input_mock):
         """
         Test that download check_size message displays correctly.
@@ -287,7 +325,7 @@ class TestByTileAop(unittest.TestCase):
     def test_all_provisional_no_data_available_message(self):
         """
         Test that the by_tile_aop() function returns the expected message when include_provisional is set to False (default) but no data are available.
-        This has already run through the check that any data is available (eg. there is data at that site for the year provided)
+        This has already run through the check that any data is available(eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
             by_tile_aop(dpid=self.dpid, site='WLOU', year=2024,
@@ -296,11 +334,11 @@ class TestByTileAop(unittest.TestCase):
                 'INFO:root:No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.', cm.output)
 
     # provisional included, and no data available
-    @patch('builtins.input', return_value='n')
+    @ patch('builtins.input', return_value='n')
     def test_provisional_included_and_data_available_message(self, input_mock):
         """
         Test that the by_file_aop() function returns the expected message when include_provisional is set to False (default) but no data are available.
-        This has already run through the check that any data is available (eg. there is data at that site for the year provided)
+        This has already run through the check that any data is available(eg. there is data at that site for the year provided)
         """
         with self.assertLogs(level='INFO') as cm:
             by_tile_aop(dpid=self.dpid, site=self.site, year=2023,
@@ -308,25 +346,26 @@ class TestByTileAop(unittest.TestCase):
             self.assertIn(
                 'INFO:root:Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.', cm.output)
 
-    @patch('builtins.input', return_value='n')
-    @patch('importlib.import_module')
-    @patch('logging.info')
-    def test_pyproj_not_installed(self, logging_mock, import_module_mock, input_mock):
-        # Setup the mock to raise ImportError when pyproj is attempted to be imported
-        import_module_mock.side_effect = ImportError(
-            "No module named 'pyproj'")
+# pyproj is part of the requirements, so this is not needed - this was carried over from the R package
+    # @ patch('builtins.input', return_value='n')
+    # @ patch('importlib.import_module')
+    # @ patch('logging.info')
+    # def test_pyproj_not_installed(self, logging_mock, import_module_mock, input_mock):
+    #     # Setup the mock to raise ImportError when pyproj is attempted to be imported
+    #     import_module_mock.side_effect = ImportError(
+    #         "No module named 'pyproj'")
 
-        by_tile_aop(dpid="DP3.30015.001", site='BLAN', year=2022,
-                    easting=243758.81, northing=4330667.37,
-                    include_provisional=False, verbose=True)
+    #     by_tile_aop(dpid="DP3.30015.001", site='BLAN', year=2022,
+    #                 easting=243758.81, northing=4330667.37,
+    #                 include_provisional=False, verbose=True)
 
-        # Check if logging.info was called with the correct message
-        # There will also be a message about the include_provisional, so can't use assert_called_once_with
-        logging_mock.assert_any_call(
-            "Package pyproj is required for this function to work at the BLAN site. Install and re-try"
-        )
+    #     # Check if logging.info was called with the correct message
+    #     # There will also be a message about the include_provisional, so can't use assert_called_once_with
+    #     logging_mock.assert_any_call(
+    #         "Package pyproj is required for this function to work at the BLAN site. Install and re-try."
+    #     )
 
-    @patch('builtins.input', return_value='n')
+    @ patch('builtins.input', return_value='n')
     def test_blan_utm_info_message(self, input_mock):
         """
         Test that the by_tile_aop() function returns the expected message about UTM zone conversion when BLAN is the site.
@@ -337,171 +376,9 @@ class TestByTileAop(unittest.TestCase):
             self.assertIn('INFO:root:Blandy (BLAN) plots include two UTM zones, flight data are all in 17N. '
                           'Coordinates in UTM zone 18N have been converted to 17N to download the correct tiles. '
                           'You will need to make the same conversion to connect airborne to ground data.', cm.output)
-
-    # this should work with parameterized package (!pip install parameterized, from parameterized import parameterized)
-    # @parameterized.expand([
-    #     ("McRae",),
-    #     ("mcra,abby",),
-    # ])
-    # def test_invalid_site_format(self, site):
-    #     with self.assertRaises(ValueError, msg=f'{site} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.'):
-    #         my_module.by_tile_aop(dpid=self.dpid, site=site, year=self.year, easting=self.easting, northing=self.northing)
-
-    # @pytest.mark.parametrize("site", [("McRae"), ("mcra,abby"), ],)
-    # def test_invalid_site_format(self, site):
-    #     """
-    #     Test that the by_file_aop() function returns the expected error message when an invalid site format is provided
-    #     """
-    #     with self.assertRaises(ValueError, msg=f'{site} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.'):
-    #         by_tile_aop(dpid=self.dpid, site=site, year=self.year,
-    #                     easting=self.easting, northing=self.northing)
-        # by_tile_aop(dpid=self.dpid, site=site, year=self.year,easting=self.easting, northing=self.northing)
-        # # out, err = capsys.readouterr()
-        # assert out == f'{site.upper()} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.\n'
-
-
-# OLD CODE, using pytest, outside of testing classes
-
-# Notes:
-# - The capsys fixture captures the output of the function to enable checking the output messages
-# - @pytest.mark.parametrize allows for testing different sets of inputs with the same test
-# - The unittest "monkeypatch" mocks the user input to say "n" (no) to avoid downloading data
-
-    # @pytest.mark.parametrize("year",
-    #                          [("19"), ("2018-05"), ],)
-    # def test_by_file_aop_invalid_year_format(year):
-    #     """
-    #     Test that the by_file_aop() function returns the expected error message when an invalid site format is provided
-    #     """
-    #     with pytest.raises(ValueError, match=f'{year} is an invalid year. Year is required in the format "2017" or 2017, eg. AOP data are available from 2013 to present.'):
-    #         by_file_aop(dpid="DP3.30015.001", site="MCRA", year=year)
-
-    # @pytest.mark.parametrize("year",
-    #                          [("19"), ("2018-05"), ],)
-    # def test_by_file_aop_invalid_year_format(year):
-    #     """
-    #     Test that the by_file_aop() function returns the expected error message when an invalid site format is provided
-    #     """
-    #     with pytest.raises(ValueError, match=f'{year} is an invalid year. Year is required in the format "2017" or 2017, eg. AOP data are available from 2013 to present.'):
-    #         by_file_aop(dpid="DP3.30015.001", site="MCRA", year=year)
-
-# def test_by_file_aop_invalid_dpid_format():
-#     dpid = "DP1.0010"
-#     with pytest.raises(ValueError, match=f'{dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#'):
-#         by_file_aop(dpid=dpid, site="MCRA", year=2021)
-#         # validate_dpid(dpid)
-
-
-# def test_by_file_aop_check_field_spectra_dpid():
-#     dpid = 'DP1.30012.001'
-#     with pytest.raises(ValueError, match=f'{dpid} is the Field spectral data product, which is published as tabular data. Use zipsByProduct() or loadByProduct() to download these data.'):
-#         by_file_aop(dpid=dpid, site="MCRA", year=2021)
-
-# def test_by_file_aop_invalid_dpid_format(capsys):
-#     """
-#     Test that the by_file_aop() function returns the expected error message when an invalid dpid format is provided
-#     """
-#     dpid = "DP1.0010"
-#     by_file_aop(dpid=dpid, site="MCRA", year=2021)
-#     out, err = capsys.readouterr()
-#     assert out == f'{dpid} is not a properly formatted data product ID. The correct format is DP#.#####.00#\n'
-
-
-# @pytest.mark.parametrize("year, site, dpid",
-#                          [
-#                              ("2019", "McRae", "DP3.30015.001"),
-#                              (2020, "mcra,abby", "DP3.30015.001"),
-#                          ],)
-# def test_by_file_aop_invalid_site_format(capsys, year, site, dpid):
-#     """
-#     Test that the by_file_aop() function returns the expected error message when an invalid site format is provided
-#     """
-#     by_file_aop(dpid=dpid, site=site, year=year)
-#     out, err = capsys.readouterr()
-#     assert out == f'{site.upper()} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list.\n'
-
-# @pytest.mark.parametrize("site",
-#                          [
-#                              ("McRae"),
-#                              ("mcra,abby"),
-#                          ],)
-# def test_by_file_aop_invalid_site_format(site):
-#     """
-#     Test that the by_file_aop() function returns the expected error message when an invalid site format is provided
-#     """
-#     dpid = "DP3.30015.001"
-#     with pytest.raises(ValueError, match=f'{site.upper()} is an invalid site. A four-letter NEON site code is required. NEON sites codes can be found here: https://www.neonscience.org/field-sites/field-sites-map/list'):
-#         by_file_aop(dpid=dpid, site=site, year=2021)
-
-
-# @pytest.mark.parametrize("year", [("19"), (18), ],)
-# def test_by_file_aop_invalid_year_format(capsys, year):
-#     """
-#     Test that the by_file_aop() function returns the expected error message when an invalid year format is provided
-#     """
-#     by_file_aop(dpid="DP3.30015.001", site="MCRA", year=year)
-#     out, err = capsys.readouterr()
-#     assert out == f'{year} is an invalid year. Year is required in the format "2017", eg. Data are available from 2013 to present.\n'
-
-
-### Test collocated and regular sites ###
-# The monkey patch mocks the user input to say "n" (no) to avoid downloading data
-
-# These next two tests make an API request, so if there is a print statement in get_api for x-ratelimit-remaining,
-# it will FAIL without a token. Should mock that part. And/or just test the get_shared_flights function?
-
-
-# @pytest.mark.parametrize("year, site, flightSite",
-#                          [
-#                              ("2022", "CHEQ", "STEI"),
-#                              ("2022", "TREE", "STEI"),
-#                              ("2021", "DCFS", "WOOD"),
-#                              ("2020", "KONA", "KONZ"),
-#                          ],)
-# def test_by_file_aop_collocated_site_message(capsys, monkeypatch, year, site, flightSite):
-#     """
-#     Test that the by_file_aop() function returns the expected message when a collocated terrestrial site is provided
-#     """
-#     monkeypatch.setattr('builtins.input', lambda _: "n")
-#     by_file_aop(dpid="DP3.30015.001", site=site, year=year, token=token)
-#     out, err = capsys.readouterr()
-#     assert out == f'{site} is part of the flight box for {flightSite}. Downloading data from {flightSite}.\nDownload halted.\n'
-
-
-# def test_by_file_aop_noncollocated_site_message(capsys, monkeypatch):
-#     """
-#     Test that the by_file_aop() function returns the expected message when a non-collocated terrestrial site is provided
-#     """
-#     site = "MCRA"
-#     monkeypatch.setattr('builtins.input', lambda _: "n")
-#     by_file_aop(dpid="DP3.30015.001", site=site, year="2021", token=token)
-#     out, err = capsys.readouterr()
-#     assert out == f'Download halted.\n'
-
-
-### Test messages for varying scenarios of include_provisional with data unavailable / available for the provided inputs ###
-# Note that these tests would need to change for a given year/data release, as provisional data is subject to change.
-# These tests were written in Mar 2024 so work for the 2024 Release
-
-# def test_by_file_aop_all_provisional_no_data_available_message(capsys, monkeypatch):
-#     """
-#     Test that the by_file_aop() function returns the expected message when include_provisional is set to false (default) but no data are available.
-#     This has already run through the check that any data is available (eg. there is data at that site for the year provided)
-#     """
-#     site = "SCBI"
-#     monkeypatch.setattr('builtins.input', lambda _: "n")
-#     by_file_aop(dpid="DP3.30015.001", site=site, year="2023", token=token)
-#     out, err = capsys.readouterr()
-#     assert out == f'No data files found. Available data may all be provisional. To download provisional data, use input parameter include_provisional=True.\n'
-
-
-# def test_by_file_aop_provisional_included_and_data_available_message(capsys, monkeypatch):
-#     """
-#     Test that the by_file_aop() function returns the expected message when include_provisional is set to false (default) and data are available.
-#     """
-#     site = "STEI"
-#     monkeypatch.setattr('builtins.input', lambda _: "n")
-#     by_file_aop(dpid="DP3.30015.001", site=site, year="2022",
-#                 include_provisional=True, token=token)
-#     out, err = capsys.readouterr()
-#     assert out == f'Provisional data are included. To exclude provisional data, use input parameter include_provisional=False.\nDownload halted.\n'
+            self.assertIn('INFO:root:UTM 17N Easting(s): 762717.81', cm.output)
+            self.assertIn(
+                'INFO:root:UTM 17N Northing(s): 4330881.38', cm.output)
+            self.assertIn(
+                'INFO:root:UTM (x, y) lower-left coordinates of tiles to be downloaded:', cm.output)
+            self.assertIn('INFO:root:(762000, 4330000)', cm.output)
