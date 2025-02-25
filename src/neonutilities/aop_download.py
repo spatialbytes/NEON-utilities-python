@@ -20,6 +20,7 @@ written by:
 from time import sleep
 import os
 import re
+import platform
 import pandas as pd
 import numpy as np
 import logging
@@ -439,6 +440,9 @@ def list_available_dates(dpid, site):
     >>> list_available_dates('DP3.30015.001','HOPB')
     PROVISIONAL Available Dates: 2024-09
     RELEASE-2025 Available Dates: 2016-08, 2017-08, 2019-08, 2022-08
+
+    >>> list_available_dates('DP1.10098.001','HOPB')
+    ValueError: There are no data available for the data product DP1.10098.001 at the site HOPB.
     """
     product_url = "http://data.neonscience.org/api/v0/products/" + dpid
     response = get_api(api_url=product_url)  # add input for token?
@@ -460,10 +464,16 @@ def list_available_dates(dpid, site):
             )['data']['siteCodes'][i]['availableReleases']
 
 # display available release tags (including provisional) and dates for each tag
-    for entry in available_releases:
-        release = entry['release']
-        available_months = ', '.join(entry['availableMonths'])
-        logging.info(f"{release} Available Dates: {available_months}")
+    try:
+        for entry in available_releases:
+            release = entry['release']
+            available_months = ', '.join(entry['availableMonths'])
+            logging.info(f"{release} Available Dates: {available_months}")
+    except UnboundLocalError as e:
+        # if the available_releases variable doesn't exist, this error will show up:
+        # UnboundLocalError: local variable 'available_releases' referenced before assignment
+        raise ValueError(
+            f'There are no data available for the data product {dpid} at the site {site}.')
 
 
 def get_tile_bounds(file_url_df, all_bounds=False):
