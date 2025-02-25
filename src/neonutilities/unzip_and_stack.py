@@ -58,7 +58,7 @@ def unzip_zipfile(zippath):
     Updated Tues Feb 15 2024 to use "with" to ensure zip files properly close out 
     and fix error handling for Windows filepath character length limits
 
-    Folders should not be downloaded if the path lenght was too long, so this 
+    Folders should not be downloaded if the path length was too long, so this 
     might be redundant (see api_helpers.py download_url function)
     """
 
