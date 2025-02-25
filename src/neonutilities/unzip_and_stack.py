@@ -35,9 +35,8 @@ varschema = pa.schema([
 ])
 
 
-def unzip_zipfile_parallel(zippath):
+def unzip_zipfile(zippath):
     """
-
     Unzip a zip file either at just the top level or recursively through the file.
 
     Parameters
@@ -46,17 +45,21 @@ def unzip_zipfile_parallel(zippath):
 
     Return
     --------
-    A list of unzipped files to be used in stack_by_table
+    A list of unzipped files to be used in stack_by_table.
 
     Example
     --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
+    unzip_zipfile(zippath=filepath)
 
     Created on Tue Mar 5 2024
 
     @author: Zachary Nickerson
+
+    Updated Tues Feb 15 2024 to use "with" to ensure zip files properly close out 
+    and fix error handling for Windows filepath character length limits
+
+    Folders should not be downloaded if the path lenght was too long, so this 
+    might be redundant (see api_helpers.py download_url function)
     """
 
     # Error handling on inputs
@@ -68,32 +71,53 @@ def unzip_zipfile_parallel(zippath):
         level = "in"
 
     if level == "all":
-        zip_ref = zipfile.ZipFile(zippath, 'r')
-        tl = zip_ref.namelist()
+        with zipfile.ZipFile(zippath, 'r') as zip_ref:
+            tl = zip_ref.namelist()
 
-        # Error handling for filepath character lengths
-        if any(len(x) > 260 for x in tl) and platform.system() == "Windows":
-            print('Longest filepath is ' + str(len(max(tl, key=len))) + ' characters long. Filepaths on Windows are limited to 260 characters. Move files closer to the root directory.')
-            return None
+            # Construct full paths as they will be after extraction
+            full_extracted_paths = [os.path.join(
+                zippath, zipname) for zipname in tl]
 
-        # Unzip file and get list of zips within
-        zip_ref.extractall(path=outpath)
-        zps = glob.glob(zippath[:-4] + "/*.zip")
+            # Error handling for filepath character lengths
+            if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
+                longest_path = max(full_extracted_paths, key=len)
+                raise OSError(f"Longest filepath is {len(longest_path)} characters long. "
+                              "Filepaths on Windows are limited to 260 characters. "
+                              "Move files closer to the root directory or enable "
+                              "long path support in Windows through the Registry Editor.")
 
-        # If there are more zips within parent zip file, unzip those as well
-        # does this happen anymore? this might be deprecated.
-        # level as an input might also be deprecated
-        if len(zps) > 0:
-            print('need an example to properly code this up.\n')
+            # Unzip file and get list of zips within
+            zip_ref.extractall(path=outpath)
+
+            # If there are more zips within parent zip file, unzip those as well
+            # does this happen anymore? this might be deprecated.
+            # level as an input might also be deprecated
+            zps = glob.glob(zippath[:-4] + "/*.zip")
+            if len(zps) > 0:
+                print('need an example to properly code this up.\n')
 
     if level == "in":
         zps = glob.glob(outpath+"/*.zip")
 
         for i in range(0, len(zps)):
-            zip_refi = zipfile.ZipFile(zps[i], 'r')
-            outpathi = zps[i][:-4]
-            zip_refi.extractall(path=outpathi)
-            os.remove(path=zps[i])
+            with zipfile.ZipFile(zps[i], 'r') as zip_refi:
+                tl = zip_refi.namelist()
+
+                # Construct full paths as they will be after extraction
+                full_extracted_paths = [os.path.join(
+                    zippath, zipname) for zipname in tl]
+
+                # Error handling for filepath character lengths
+                if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
+                    longest_path = max(full_extracted_paths, key=len)
+                    raise OSError(f"Longest filepath is {len(longest_path)} characters long. "
+                                  "Filepaths on Windows are limited to 260 characters. "
+                                  "Move files closer to the root directory or enable "
+                                  "long path support in Windows through the Registry Editor.")
+
+                outpathi = zps[i][:-4]
+                zip_refi.extractall(path=outpathi)
+            os.remove(zps[i])
 
     return None
 
@@ -115,9 +139,8 @@ def find_datatables(folder,
 
     Example
     --------
-    ZN NOTE: Insert example when function is coded
-
-    >>> example
+    filenames = find_datatables(folder=folder, f_names=False)
+    see stack_data_files_parallel
 
     Created on Wed Apr 17 2024
 
@@ -1153,13 +1176,13 @@ def stack_by_table(filepath,
 
         # If the filepath is a zip file
         if not folder:
-            unzip_zipfile_parallel(zippath = filepath)
+            unzip_zipfile(zippath=filepath)
             stackpath = filepath[:-4]
 
         # If the filepath is a directory
         if folder:
             if any(".zip" in file for file in files):
-                unzip_zipfile_parallel(zippath = filepath)
+                unzip_zipfile(zippath=filepath)
             stackpath = filepath
 
         # Stack the files
