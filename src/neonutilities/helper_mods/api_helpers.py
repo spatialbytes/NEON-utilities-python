@@ -535,42 +535,57 @@ def download_urls(url_set,
 
     for i in tqdm(range(0, len(url_set["z"])), disable=not progress):
 
-        try:
-            if token is None:
-                j = 0
-                while j<3:
-                    try:
-                        with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                            content = requests.get(url_set["z"][i], stream=True, 
-                                                   headers={"accept": "application/json",
-                                                            "User-Agent": usera}, 
-                                                   timeout=(10, 120)).content
-                            out_file.write(content)
-                        j = j+5
-                    except Exception:
-                        logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
-                        j = j+1
-                        time.sleep(5)
-            else:
-                j = 0
-                while j<3:
-                    try:
-                        with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                            content = requests.get(url_set["z"][i], stream=True, 
-                                                   headers={"X-API-TOKEN": token, 
-                                                            "accept": "application/json",
-                                                            "User-Agent": usera}, 
-                                                   timeout=(10, 120)).content
-                            out_file.write(content)
-                        j = j+5
-                    except Exception:
-                        logging.info(f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
-                        j = j+1
-                        time.sleep(5)
+        if len(outpath+url_set["flnm"][i]) > 260 and platform.system() == "Windows":
+            raise OSError(
+                f'Filepath is {len(outpath+url_set["flnm"][i])} characters long. Filepaths on Windows are limited to 260 characters. Move your working directory closer to the root directory or enable long path support in Windows through the Registry Editor.')
+            return
 
-        except Exception:
-            logging.info(f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
-            pass
+        else:
+            try:
+                if token is None:
+                    j = 0
+                    while j < 3:
+                        try:
+                            with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                                print('length outfile:', len(
+                                    outpath+url_set["flnm"][i]))
+                                content = requests.get(url_set["z"][i], stream=True,
+                                                       headers={"accept": "application/json",
+                                                                "User-Agent": usera},
+                                                       timeout=(10, 120)).content
+                                out_file.write(content)
+                            j = j+5
+                        except Exception as e:
+                            logging.info(
+                                f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
+                            print(e)
+                            j = j+1
+                            time.sleep(5)
+                else:
+                    j = 0
+                    while j < 3:
+                        try:
+                            with open(outpath+url_set["flnm"][i], "wb") as out_file:
+                                print('length outfile:', len(
+                                    outpath+url_set["flnm"][i]))
+                                content = requests.get(url_set["z"][i], stream=True,
+                                                       headers={"X-API-TOKEN": token,
+                                                                "accept": "application/json",
+                                                                "User-Agent": usera},
+                                                       timeout=(10, 120)).content
+                                out_file.write(content)
+                            j = j+5
+                        except Exception as e:
+                            logging.info(
+                                f"File {url_set['flnm'][i]} could not be downloaded. Re-attempting.")
+                            print(e)
+                            j = j+1
+                            time.sleep(5)
+
+            except Exception:
+                logging.info(
+                    f"File {url_set['flnm'][i]} could not be downloaded and was skipped. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
+                pass
 
     return None
 
@@ -618,48 +633,59 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     file_path = "/".join(pathparts[3:len(pathparts)])
 
     file_fullpath = savepath + "/" + file_path
-    os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
+    file_fullpath_abs = os.path.abspath(file_fullpath)  # get the absolute path
 
-    try:
-        if token is None:
-            j = 0
-            while j<3:
-                try:
-                    r = requests.get(url, stream=True, 
-                                     headers={"accept": "application/json",
-                                              "User-Agent": usera},
-                                     timeout=(10, 120))
-                    j = j+5
-                except Exception:
-                    logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
-                    j = j+1
-                    time.sleep(5)
-        else:
-            j = 0
-            while j<3:
-                try:
-                    r = requests.get(url, stream=True, 
-                                     headers={"X-API-TOKEN": token,
-                                              "accept": "application/json",
-                                              "User-Agent": usera},
-                                     timeout=(10, 120))
-                    j = j+5
-                except Exception:
-                    logging.info(f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
-                    j = j+1
-                    time.sleep(5)
+    if len(file_fullpath_abs) > 260 and platform.system() == "Windows":
+        raise OSError(
+            f'Filepath is {len(file_fullpath_abs)} characters long. Filepaths on Windows are limited to 260 characters. Set the savepath to be closer to the root directory or enable long path support in Windows through the Registry Editor.')
+        return
 
-        with open(file_fullpath, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=chunk_size):
-                if chunk:
-                    f.write(chunk)
-        r.close()
+    else:
+        os.makedirs(os.path.dirname(file_fullpath), exist_ok=True)
 
-    except Exception:
-        logging.info(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
-        pass
+        try:
+            if token is None:
+                j = 0
+                while j < 3:
+                    try:
+                        r = requests.get(url, stream=True,
+                                         headers={"accept": "application/json",
+                                                  "User-Agent": usera},
+                                         timeout=(10, 120))
+                        j = j+5
+                    except Exception:
+                        logging.info(
+                            f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
+                        j = j+1
+                        time.sleep(5)
+            else:
+                j = 0
+                while j < 3:
+                    try:
+                        r = requests.get(url, stream=True,
+                                         headers={"X-API-TOKEN": token,
+                                                  "accept": "application/json",
+                                                  "User-Agent": usera},
+                                         timeout=(10, 120))
+                        j = j+5
+                    except Exception:
+                        logging.info(
+                            f"File {os.path.basename(url)} could not be downloaded. Re-attempting.")
+                        j = j+1
+                        time.sleep(5)
 
-    return
+            with open(file_fullpath, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+            r.close()
+
+        except Exception as e:
+            logging.info(f"File {os.path.basename(url)} could not be downloaded and was skipped or partially downloaded. If this issue persists, check your network connection and check the NEON Data Portal for outage alerts.")
+            # print(e)
+            pass
+
+        return
 
 
 def readme_url(readmepath):
