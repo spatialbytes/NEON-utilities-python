@@ -547,8 +547,6 @@ def download_urls(url_set,
                     while j < 3:
                         try:
                             with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                                print('length outfile:', len(
-                                    outpath+url_set["flnm"][i]))
                                 content = requests.get(url_set["z"][i], stream=True,
                                                        headers={"accept": "application/json",
                                                                 "User-Agent": usera},
@@ -566,8 +564,6 @@ def download_urls(url_set,
                     while j < 3:
                         try:
                             with open(outpath+url_set["flnm"][i], "wb") as out_file:
-                                print('length outfile:', len(
-                                    outpath+url_set["flnm"][i]))
                                 content = requests.get(url_set["z"][i], stream=True,
                                                        headers={"X-API-TOKEN": token,
                                                                 "accept": "application/json",
