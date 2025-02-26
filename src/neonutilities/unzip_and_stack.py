@@ -55,11 +55,9 @@ def unzip_zipfile(zippath):
 
     @author: Zachary Nickerson
 
-    Updated Tues Feb 15 2024 to use "with" to ensure zip files properly close out 
+    Updated Feb 2025 to use "with" so that zip files properly close out 
     and fix error handling for Windows filepath character length limits
 
-    Folders should not be downloaded if the path length was too long, so this 
-    might be redundant (see api_helpers.py download_url function)
     """
 
     # Error handling on inputs
@@ -72,29 +70,34 @@ def unzip_zipfile(zippath):
 
     if level == "all":
         with zipfile.ZipFile(zippath, 'r') as zip_ref:
-            tl = zip_ref.namelist()
-
+            tl = zip_ref.namelist(); #print('tl:',tl)
             # Construct full paths as they will be after extraction
-            full_extracted_paths = [os.path.join(
-                zippath, zipname) for zipname in tl]
+            # not sure what the full_extracted_path should be here
+            # this is used in stack_by_table, eg.
+            # litterlst = nu.stack_by_table("./testdata/NEON_litterfall.zip", savepath="envt")
+            full_extracted_paths = [os.path.join(os.path.abspath(zippath).replace('.zip',''), zipname) for zipname in tl]
+            # print('full_extracted_paths:',full_extracted_paths)
+            # print('len(full_extracted_paths):',[len(x) for x in full_extracted_paths])
 
-            # Error handling for filepath character lengths
+            # Error handling for filepath character length limitations on Windows
+            # Should this be a warning? Or check if the Windows system has LongPathsEnabled?
             if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
                 longest_path = max(full_extracted_paths, key=len)
-                raise OSError(f"Longest filepath is {len(longest_path)} characters long. "
-                              "Filepaths on Windows are limited to 260 characters. "
-                              "Move files closer to the root directory or enable "
+                raise OSError(f"Filepaths on Windows are limited to 260 characters. "
+                              "Trying to extract a filepath that is {len(longest_path)} characters long. "
+                              "Move your working directory closer to the root directory or enable "
                               "long path support in Windows through the Registry Editor.")
+            else:
+                # Unzip file and get list of zips within
+                zip_ref.extractall(path=outpath)
+                zps = glob.glob(zippath[:-4] + "/*.zip")
 
-            # Unzip file and get list of zips within
-            zip_ref.extractall(path=outpath)
+                # If there are more zips within parent zip file, unzip those as well
+                # does this happen anymore? this might be deprecated.
+                # level as an input might also be deprecated
 
-            # If there are more zips within parent zip file, unzip those as well
-            # does this happen anymore? this might be deprecated.
-            # level as an input might also be deprecated
-            zps = glob.glob(zippath[:-4] + "/*.zip")
-            if len(zps) > 0:
-                print('need an example to properly code this up.\n')
+                if len(zps) > 0:
+                    print('Multiple zip files are contained within the parent zip file. Need an example to properly code this up.\n')
 
     if level == "in":
         zps = glob.glob(outpath+"/*.zip")
@@ -105,18 +108,20 @@ def unzip_zipfile(zippath):
 
                 # Construct full paths as they will be after extraction
                 full_extracted_paths = [os.path.join(
-                    zippath, zipname) for zipname in tl]
+                    zps[i].replace('.zip',''), zipname) for zipname in tl]
+                # print('full extracted paths:',full_extracted_paths)
+                # print('len(full_extracted_paths):',[len(x) for x in full_extracted_paths])
 
-                # Error handling for filepath character lengths
+                # Error handling for filepath character length limitations on Windows
                 if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
                     longest_path = max(full_extracted_paths, key=len)
-                    raise OSError(f"Longest filepath is {len(longest_path)} characters long. "
-                                  "Filepaths on Windows are limited to 260 characters. "
-                                  "Move files closer to the root directory or enable "
+                    raise OSError(f"Filepaths on Windows are limited to 260 characters. "
+                                  "Trying to extract a filepath that is {len(longest_path)} characters long. "
+                                  "Move your working directory closer to the root directory or enable "
                                   "long path support in Windows through the Registry Editor.")
-
-                outpathi = zps[i][:-4]
-                zip_refi.extractall(path=outpathi)
+                else:
+                    outpathi = zps[i][:-4]
+                    zip_refi.extractall(path=outpathi)
             os.remove(zps[i])
 
     return None
