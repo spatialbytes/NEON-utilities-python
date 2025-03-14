@@ -15,6 +15,7 @@ $ pip install neonutilities
 
 ```
 import neonutilities as nu
+import os
 
 bird = nu.load_by_product(dpid="DP1.10003.001",
 			site="RMNP",
