@@ -24,4 +24,4 @@ north = pppy['northing'].to_list()
 nu.by_tile_aop(dpid='DP3.30015.001', site='WREF', year=2023, 
                easting=east, northing=north, buffer=20, 
                include_provisional=True, check_size=False, 
-               save_path='INSERT FILE PATH', token=os.environ.get('NEON_TOKEN'))
+               savepath='INSERT FILE PATH', token=os.environ.get('NEON_TOKEN'))
