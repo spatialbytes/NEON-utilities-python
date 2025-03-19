@@ -431,8 +431,8 @@ def list_available_dates(dpid, site):
     --------
     Returns:
     prints the Release Tag (or PROVISIONAL) and the corresponding available dates (YYYY-MM) for each tag
---------
-    Usage:
+
+    Examples:
     --------
     >>> list_available_dates('DP3.30015.001','JORN')
     RELEASE-2025 Available Dates: 2017-08, 2018-08, 2019-08, 2021-08, 2022-09
@@ -443,6 +443,11 @@ def list_available_dates(dpid, site):
 
     >>> list_available_dates('DP1.10098.001','HOPB')
     ValueError: There are no data available for the data product DP1.10098.001 at the site HOPB.
+
+    Created on Feb 17 2025
+
+    @author: Bridget Hass
+
     """
     product_url = "http://data.neonscience.org/api/v0/products/" + dpid
     response = get_api(api_url=product_url)  # add input for token?
@@ -580,6 +585,10 @@ def get_aop_tile_extents(dpid,
     >>> tile_extents = get_aop_tile_extents(dpid="DP3.30015.001", site="MCRA", year="2021",all_bounds=True)
     # This returns a list of the UTM x,y extent for all CHM tiles at the site MCRA collected in 2021.
     # It also displays the minimum and maximum UTM Easting and Northing (x and y) values for this product - site -year.
+
+    Created on Feb 17 2025
+
+    @author: Bridget Hass
 
     """
 
@@ -720,6 +729,18 @@ def by_file_aop(dpid,
     --------
     The function creates a folder in the 'savepath' directory, containing all AOP files meeting the query criteria.
     If 'savepath' is not provided, data are downloaded to the working directory.
+
+    Windows Path Length Limitations:
+    When using this function to download files from the NEON data portal, you may encounter path length limitations 
+    on Windows systems. Windows has a default maximum path length of 260 characters, which can cause download 
+    functions to fail if this limit is exceeded. If the file path exceeds 260 characters on a Windows system, 
+    the package will issue a warning.If you see this warning and no files are downloaded, either change your 
+    working or savepath directory to be closer to the root directory, or enable long paths on Windows. You can 
+    choose to ignore or filter these warnings using Python's warnings module if you prefer not to see them.
+
+    Created on Feb 28 2024
+
+    @author: Bridget Hass
     """
 
     # raise value error and print message if dpid isn't formatted as expected
@@ -944,6 +965,23 @@ def by_tile_aop(dpid,
                     year="2021", savepath="../../test_download")
     # This will download any tiles overlapping the specified UTM coordinates for
     # 2021 canopy height model data from McRae Creek to the './test_download' directory.
+
+    Notes
+    --------
+    The function creates a folder in the 'savepath' directory, containing all AOP files meeting the query criteria.
+    If 'savepath' is not provided, data are downloaded to the working directory.
+
+    Windows Path Length Limitations:
+    When using this function to download files from the NEON data portal, you may encounter path length limitations 
+    on Windows systems. Windows has a default maximum path length of 260 characters, which can cause download 
+    functions to fail if this limit is exceeded. If the file path exceeds 260 characters on a Windows system, 
+    the package will issue a warning.If you see this warning and no files are downloaded, either change your 
+    working or savepath directory to be closer to the root directory, or enable long paths on Windows. You can 
+    choose to ignore or filter these warnings using Python's warnings module if you prefer not to see them.
+
+    Created on Feb 28 2024
+
+    @author: Bridget Hass
 
     """
 

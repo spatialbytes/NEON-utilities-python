@@ -1084,17 +1084,17 @@ def stack_by_table(filepath,
     ------------------
     filepath: str
         The location of the zip file or downloaded files.
-        
+
     savepath: str, optional
         The location to save the output files to. If omitted, output files will be 
         saved in the same location as the input file.
-    
+
     save_unzipped_files: bool, optional
         Should the unzipped monthly data folders be retained? Defaults to False.
-        
+
     progress: bool, optional
         Should the function display progress bars as it runs? Defaults to True.
-        
+
     cloud_mode: bool, optional
         Use cloud mode to transfer files cloud-to-cloud? If used, stack_by_table() 
         expects a list of file urls as input. Defaults to False; in general this 
@@ -1111,6 +1111,17 @@ def stack_by_table(filepath,
     ------------------
     To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
     >>> pardat = stack_by_table("/filepath/NEON_par.zip")
+
+    Notes
+    --------
+
+    Windows Path Length Limitations:
+    When using this function, you may encounter path length limitations  on Windows systems. 
+    Windows has a default maximum path length of 260 characters, which can cause download and unzip
+    functions to fail if this limit is exceeded. If the file path exceeds 260 characters on a Windows system, 
+    the package will issue a warning.You can choose to ignore or filter these warnings using Python's warnings 
+    module if you prefer not to see them. If the function is unable to unzip a folder due to path length 
+    limitations, an OSError will be raised.
 
     Created on Tue Mar 5 2024
 
@@ -1337,6 +1348,16 @@ def load_by_product(dpid, site="all", startdate=None, enddate=None,
     >>> wq = load_by_product(dpid="DP1.20288.001", site="COMO",
                              startdate="2018-01", enddate="2018-12",
                              token=None)
+
+    Notes
+    --------
+    Windows Path Length Limitations:
+    When using this function, you may encounter path length limitations  on Windows systems. 
+    Windows has a default maximum path length of 260 characters, which can cause download and unzip
+    functions to fail if this limit is exceeded. If the file path exceeds 260 characters on a Windows system, 
+    the package will issue a warning.You can choose to ignore or filter these warnings using Python's warnings 
+    module if you prefer not to see them. If the function is unable to unzip a folder due to path length 
+    limitations, an OSError will be raised.
 
     Created on June 12 2024
 
