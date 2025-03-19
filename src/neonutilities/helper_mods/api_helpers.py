@@ -623,6 +623,9 @@ def download_file(url, savepath, chunk_size=1024, token=None):
     It also handles 'neon-publication' and 'neon-aop-products' in the URL differently to determine the file path. 
     This is for downloading the readme.txt file which contains detailed information about the data package, issue logs, etc.
     https://storage.googleapis.com/neon-publication/NEON.DOM.SITE.DP3.30015.001/SCBI/20230601T000000--20230701T000000/basic/NEON.D02.SCBI.DP3.30015.001.readme.20240206T001418Z.txt
+
+    @author: Bridget Hass
+
     """
 
     pathparts = url.split("/")
@@ -633,7 +636,7 @@ def download_file(url, savepath, chunk_size=1024, token=None):
 
     if len(file_fullpath_abs) > 260 and platform.system() == "Windows":
         raise OSError(
-            f'Filepath is {len(file_fullpath_abs)} characters long. Filepaths on Windows are limited to 260 characters. Set the savepath to be closer to the root directory or enable long path support in Windows through the Registry Editor.')
+            f'Filepath is {len(file_fullpath_abs)} characters long. Filepaths on Windows are limited to 260 characters. Set the savepath to be closer to the root directory or enable long path support in Windows.')
         return
 
     else:
