@@ -10,6 +10,7 @@ import zipfile
 import platform
 import glob
 import re
+import warnings
 import importlib_resources
 from tqdm import tqdm
 from .tabular_download import zips_by_product
@@ -72,32 +73,36 @@ def unzip_zipfile(zippath):
         with zipfile.ZipFile(zippath, 'r') as zip_ref:
             tl = zip_ref.namelist(); #print('tl:',tl)
             # Construct full paths as they will be after extraction
-            # not sure what the full_extracted_path should be here
-            # this is used in stack_by_table, eg.
-            # litterlst = nu.stack_by_table("./testdata/NEON_litterfall.zip", savepath="envt")
+            # this is used in stack_by_table, eg. # litterlst = nu.stack_by_table("./testdata/NEON_litterfall.zip", savepath="envt")
             full_extracted_paths = [os.path.join(os.path.abspath(zippath).replace('.zip',''), zipname) for zipname in tl]
             # print('full_extracted_paths:',full_extracted_paths)
             # print('len(full_extracted_paths):',[len(x) for x in full_extracted_paths])
 
             # Error handling for filepath character length limitations on Windows
-            # Should this be a warning? Or check if the Windows system has LongPathsEnabled?
-            if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
+            # This is a warning
+            if platform.system() == "Windows" and any(len(x) > 260 for x in full_extracted_paths):
                 longest_path = max(full_extracted_paths, key=len)
-                raise OSError(f"Filepaths on Windows are limited to 260 characters. "
-                              "Trying to extract a filepath that is {len(longest_path)} characters long. "
-                              "Move your working directory closer to the root directory or enable "
-                              "long path support in Windows through the Registry Editor.")
-            else:
-                # Unzip file and get list of zips within
+                warnings.warn("Filepaths on Windows are limited to 260 characters. "
+                              f"Attempting to extract a filepath that is > 260 characters long. "
+                              "Move your working or savepath directory closer to the root directory or enable "
+                              "long path support in Windows.")
+
+            try:
+                # Unzip file and get list of zips within (this will still fail if paths are too long on Windows)
                 zip_ref.extractall(path=outpath)
                 zps = glob.glob(zippath[:-4] + "/*.zip")
-
                 # If there are more zips within parent zip file, unzip those as well
-                # does this happen anymore? this might be deprecated.
-                # level as an input might also be deprecated
-
+                # this might be deprecated (shouldn't happen any  more). level as an input might also be deprecated
+                # leaving in in case anything changes in tabular data
                 if len(zps) > 0:
                     print('Multiple zip files are contained within the parent zip file. Need an example to properly code this up.\n')
+            except FileNotFoundError as e:
+                print(e)
+                raise OSError("Filepaths on Windows are limited to 260 characters. "
+                              f"Attempting to extract a filepath that is {len(longest_path)} characters long. "
+                              "Move your working or savepath directory closer to the root directory or enable "
+                              "long path support in Windows.")
+
 
     if level == "in":
         zps = glob.glob(outpath+"/*.zip")
@@ -109,19 +114,26 @@ def unzip_zipfile(zippath):
                 # Construct full paths as they will be after extraction
                 full_extracted_paths = [os.path.join(
                     zps[i].replace('.zip',''), zipname) for zipname in tl]
+                longest_path = max(full_extracted_paths, key=len)
                 # print('full extracted paths:',full_extracted_paths)
                 # print('len(full_extracted_paths):',[len(x) for x in full_extracted_paths])
 
-                # Error handling for filepath character length limitations on Windows
-                if any(len(x) > 260 for x in full_extracted_paths) and platform.system() == "Windows":
-                    longest_path = max(full_extracted_paths, key=len)
-                    raise OSError(f"Filepaths on Windows are limited to 260 characters. "
-                                  "Trying to extract a filepath that is {len(longest_path)} characters long. "
-                                  "Move your working directory closer to the root directory or enable "
-                                  "long path support in Windows through the Registry Editor.")
-                else:
+                # Warning for filepath character length limitations on Windows
+                if platform.system() == "Windows" and any(len(x) > 260 for x in full_extracted_paths):
+                    warnings.warn("Filepaths on Windows are limited to 260 characters. "
+                                  f"Attempting to extract a filepath that is > 260 characters long. "
+                                  "Move your working or savepath directory closer to the root directory "
+                                  "or enable long path support in Windows.", UserWarning)
+
+                try:
                     outpathi = zps[i][:-4]
                     zip_refi.extractall(path=outpathi)
+                except FileNotFoundError as e:
+                    raise OSError("ERROR: Filepaths on Windows are limited to 260 characters. "
+                                  f"Attempting to extract a filepath that is {len(longest_path)} characters long. "
+                                  "Move your working or savepath directory closer to the root directory or enable "
+                                  "long path support in Windows.")
+                    print(e)
             os.remove(zps[i])
 
     return None
@@ -1214,6 +1226,11 @@ def stack_by_table(filepath,
                 os.remove(stackpath + "/.DS_Store")
             if os.listdir(stackpath) == []:
                 os.rmdir(stackpath)
+
+    # Check if stackedlist is None (eg. if there is a failure in downloading the data due to long paths on windows)
+    if stackedlist is None:
+        logging.info("ERROR! Stacking failed due to previous errors.")
+        return None
 
     # sort the dictionary of tables
     mk = list(stackedlist.keys())
