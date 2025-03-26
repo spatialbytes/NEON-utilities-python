@@ -1098,6 +1098,7 @@ def stack_by_table(filepath,
     Example
     ------------------
     To stack PAR data (DP1.00024.001) downloaded from the NEON data portal
+
     >>> pardat = stack_by_table("/filepath/NEON_par.zip")
 
     Created on Tue Mar 5 2024
