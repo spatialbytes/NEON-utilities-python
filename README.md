@@ -15,16 +15,17 @@ $ pip install neonutilities
 
 ```
 import neonutilities as nu
+import os
 
 bird = nu.load_by_product(dpid="DP1.10003.001",
 			site="RMNP",
 			package="expanded",
 			release="RELEASE-2024",
 			token=os.environ.get("NEON_TOKEN"))
-							   
+
 nu.by_tile_aop(dpid="DP3.30015.001",
 		site="WREF",
-		year=2022,
+		year=2021,
 		easting=[571000,578000],
 		northing=[5079000,5080000],
 		savepath="filepath on your machine",
@@ -53,4 +54,3 @@ Disclaimer
 ---
 
 Information and documents contained within this repository are available as-is. Codes or documents, or their use, may not be supported or maintained under any program or service and may not be compatible with data currently available from the NEON Data Portal.
-

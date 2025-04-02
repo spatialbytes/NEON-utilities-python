@@ -13,6 +13,8 @@ authors = [
 description="A package for accessing and wrangling data generated and published by the National Ecological Observatory Network."
 readme = "README.md"
 requires-python = ">=3.9"
+urls.Documentation = "https://neon-utilities-python.readthedocs.io/en/latest/"
+urls.Source = "https://github.com/NEONScience/NEON-utilities-python/"
 dependencies = [
     "importlib-resources",
     "pandas",
