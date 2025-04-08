@@ -1,0 +1,112 @@
+site_name: NEON Utilities Python Documentation
+site_description: Documentation for the NEON Utilities Python package
+site_author: NEON Data Science Team
+site_url: https://neonscience.github.io/neon-utilities-python/
+
+repo_name: neonscience/neon-utilities-python
+repo_url: https://github.com/neonscience/neon-utilities-python
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: deep purple
+  logo: assets/neon-logo.png
+  favicon: assets/favicon.png
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - minify:
+      minify_html: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - API Token: getting-started/api-token.md
+      - Basic Usage: getting-started/basic-usage.md
+  - Core Functions:
+      - Overview: functions/index.md
+      - Tabular Data:
+          - Overview: functions/tabular/index.md
+          - Download Data Packages: functions/tabular/zips_by_product.md
+          - Download & Load Data: functions/tabular/load_by_product.md
+          - Combine Data Files: functions/tabular/stack_by_table.md
+      - Remote Sensing Data:
+          - Overview: functions/aop/index.md
+          - Find Available Tiles: functions/aop/get_aop_tile_extents.md
+          - Check Available Dates: functions/aop/list_available_dates.md
+          - Download Complete Site Data: functions/aop/by_file_aop.md
+          - Download Specific Tiles: functions/aop/by_tile_aop.md
+      - Metadata Functions:
+          - Overview: functions/metadata/index.md
+          - Generate Citations: functions/metadata/get_citation.md
+          - Check Known Issues: functions/metadata/get_issue_log.md
+      - Data Processing:
+          - Overview: functions/processing/index.md
+          - Read Data with Correct Types (read_table_neon): functions/processing/read_table_neon.md
+          - Process Downloaded Archives (unzip_and_stack): functions/processing/unzip_and_stack.md
+  - Tutorials:
+      - Download and Process Tabular Data: tutorials/download-process-tabular.md
+      - Download and Process AOP Data: tutorials/download-process-aop.md
+      - Working with Large Files: tutorials/working-with-large-files.md
+      - Using API Tokens: tutorials/using-api-tokens.md
+  - API Reference: api/reference.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/neonscience
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/NEON_sci
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/user/NEONDataSkills
+
+extra_css:
+  - stylesheets/extra.css
